@@ -27,7 +27,6 @@ class Obs:
         # Going from the last gate to the first
         index = propagator.num_params - 1
         for op_num, op in enumerate(reversed(propagator.tape.operations)):
-            print(pauli_dict)
             if isinstance(op, (qml.CNOT, qml.CZ)):
                 table = tables.cnot if isinstance(op, qml.CNOT) else tables.cz
                 pauli_dict = apply.cgate(pauli_dict, op.wires, table, propagator.k1)

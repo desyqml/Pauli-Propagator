@@ -1,5 +1,5 @@
 [project]
-name = "zprop"
+name = "Pauli-Propagation"
 version = "0.2.0"
 authors = [
     { name="Saverio Monaco", email="saverio.monaco@desy.de" }
@@ -9,10 +9,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ipykernel>=6.29.5",
-    "jax==0.4.26",
-    "jaxlib==0.4.26",
-    "optax==0.2.2",
-    "pennylane==0.35.1",
+    "matplotlib>=3.10.3",
+    "pennylane==0.42.0",
     "sympy>=1.14.0",
     "tqdm>=4.67.1",
 ]

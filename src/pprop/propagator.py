@@ -4,6 +4,7 @@ import numpy as np
 import pennylane as qml
 import sympy as sp
 import tqdm
+from IPython.display import Math, display
 from pennylane.tape import QuantumTape
 
 from . import lambdify
@@ -51,13 +52,21 @@ class Propagator:
 
         return combined_function
     
-    def expression(self):
+    def expression(self, names = [], text = True):
         if self._propagated is None:
             raise ValueError("Propagator has not been propagated yet")
 
-        params_vars = sp.symbols(f'θ_0:{self.num_params}')  # Creates theta_0, theta_1, ...
+        if names:
+            assert len(names) == self.num_params
+            params_vars = sp.symbols(names)
+        else:
+            if text:
+                params_vars = sp.symbols(f'θ_0:{self.num_params}')  # Creates theta_0, theta_1, ...
+            else:
+                params_vars = sp.symbols(rf'\theta_0:{self.num_params}')  # Creates theta_0, theta_1, ...
         observable_vars = [sp.symbols(str(observable).replace("(", "").replace(")", "").replace(" ", "")) for observable in self.observables]
         
+        expressions = []
         sp.init_printing()
         
         for observable_var, pauli_dict in zip(observable_vars,self._propagated):
@@ -72,8 +81,14 @@ class Propagator:
                             sub_expr *=  trig(params_vars[int(num)])
                             
                         expr += sub_expr
-                        
-            sp.pretty_print(sp.Eq(observable_var, expr))
+            expression = sp.Eq(observable_var, expr)
+            expressions.append(expression)
+            if text: 
+                sp.pretty_print(expression)
+            else:
+                display(Math(f"{observable_var} = {expr}"))
+            
+        return expressions
 
         
     def __repr__(self):
