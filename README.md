@@ -7,9 +7,9 @@ This project focuses on the propagation of Pauli operators through parametrized 
 ## Features
 
 - **Circuit Definition**: Use PennyLane to define quantum circuits with an arbitrary number of qubits and layers.
-- **Pauli Propagation**: Efficiently propagate Pauli operators through the circuits to analyze dependencies and transformations.
-- **SymPy Integration**: Symbolic representation and manipulation of circuit expressions using SymPy.
-- **Visualization**: Generate visual representations of circuits to better understand the transformations.
+- **Pauli Propagation**: Efficiently propagate Pauli operators through the circuits to analyze the functional dependency of the output given the parameters.
+> This project currently only supports the following gates: Pauli rotations, Hadamard, CNOT and CZ. Other gates need to be implemented.
+- **SymPy Integration**: Symbolic representation of the circuit as a function of the parameters
 
 ## Installation
 
@@ -34,6 +34,7 @@ from pprop.propagator import Propagator
 def ansatz(params):
     for q in range(n_qubits):
         qml.Hadamard(wires=q)
+        qml.RY(params[q], wires=q)
     # Add parameterized gates and entanglement layers
     return [qml.expval(qml.PauliZ(0))]
 ```
