@@ -1,6 +1,6 @@
 [project]
 name = "Pauli-Propagation"
-version = "0.2.0"
+version = "1.0.0"
 authors = [
     { name="Saverio Monaco", email="saverio.monaco@desy.de" }
 ]
