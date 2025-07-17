@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Monaco"
+  given-names: "Saverio"
+  orcid: "https://orcid.org/0000-0001-8784-5011"
+- family-names: "Slim"
+  given-names: "Jamal"
+  orchid: "https://orcid.org/0000-0002-9418-8459"
+- family-names: "Krücker"
+  given-names: "Dirk"
+  orchid: "https://orcid.org/0000-0003-1610-8844"
+- family-names: "Borras"
+  given-names: "Kerstin"
+  orchid: "https://orcid.org/0000-0003-1111-249X"
+title: "Pauli-Propagator"
+version: 1.0.0
+doi: 10.5281/zenodo.1234
+date-released: 2025-07-17
+url: "https://github.com/desyqml/Pauli-Propagator"
