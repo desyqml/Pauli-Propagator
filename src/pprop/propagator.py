@@ -32,9 +32,9 @@ class Propagator:
 
         self._propagated = None
             
-    def propagate(self):
+    def propagate(self, bar = True):
         self._propagated = []
-        progress = tqdm.tqdm(self.observables, desc="Propagating observables")
+        progress = tqdm.tqdm(self.observables, desc="Propagating observables", disable = not bar)
         for index, observable in enumerate(progress):
             progress.set_description(f"Propagating {self.observables[index]}")
             self._propagated.append(obs.Obs.trim(obs.Obs.propagate(observable, self)))
@@ -52,7 +52,7 @@ class Propagator:
 
         return combined_function
     
-    def expression(self, names = [], text = True):
+    def expression(self, names = [], latex = True):
         if self._propagated is None:
             raise ValueError("Propagator has not been propagated yet")
 
@@ -60,10 +60,10 @@ class Propagator:
             assert len(names) == self.num_params
             params_vars = sp.symbols(names)
         else:
-            if text:
-                params_vars = sp.symbols(f'θ_0:{self.num_params}')  # Creates theta_0, theta_1, ...
-            else:
+            if latex:
                 params_vars = sp.symbols(rf'\theta_0:{self.num_params}')  # Creates theta_0, theta_1, ...
+            else:
+                params_vars = sp.symbols(f'θ_0:{self.num_params}')  # Creates theta_0, theta_1, ...
         observable_vars = [sp.symbols(str(observable).replace("(", "").replace(")", "").replace(" ", "")) for observable in self.observables]
         
         expressions = []
@@ -81,12 +81,14 @@ class Propagator:
                             sub_expr *=  trig(params_vars[int(num)])
                             
                         expr += sub_expr
-            expression = sp.Eq(observable_var, expr)
-            expressions.append(expression)
-            if text: 
-                sp.pretty_print(expression)
-            else:
+            if latex:
+                expression = f"{observable_var} = {expr}"
                 display(Math(f"{observable_var} = {expr}"))
+            else:
+                expression = sp.Eq(observable_var, expr)
+                sp.pretty_print(expression)
+
+            expressions.append(expression)
             
         return expressions
 

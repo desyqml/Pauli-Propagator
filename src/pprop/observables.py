@@ -7,7 +7,7 @@ from .gates import apply, tables
 
 class Obs:
     @staticmethod
-    def to_dict(observable: qml.operation.Observable):
+    def to_dict(observable):
         if len(observable.wires) == 1:
             bases: Tuple[str, ...] = tuple(op.basis for op in observable)
         else:
@@ -21,7 +21,7 @@ class Obs:
         return {key: value for key, value in pauli_dict.items() if all(char == 'Z' for char in key[0])}
 
     @staticmethod
-    def propagate(observable: qml.operation.Observable, propagator):
+    def propagate(observable, propagator):
         pauli_dict = Obs.to_dict(observable)
 
         # Going from the last gate to the first
