@@ -1,5 +1,6 @@
 from typing import Callable
 
+import jax.numpy as jnp  # noqa: F401
 import numpy as np
 import pennylane as qml
 import sympy as sp
