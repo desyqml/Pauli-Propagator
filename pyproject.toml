@@ -8,7 +8,7 @@ requires-python = ">=3.12"
 dependencies = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.3",
-    "pennylane==0.42.0",
+    "pennylane==0.42.3",
     "sympy>=1.14.0",
     "tqdm>=4.67.1",
 ]

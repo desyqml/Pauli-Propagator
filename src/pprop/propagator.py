@@ -10,6 +10,7 @@ from pennylane.tape import QuantumTape
 
 from . import lambdify
 from . import observables as obs
+from .utils import p_dict_to_hist
 
 
 class Propagator:
@@ -32,13 +33,20 @@ class Propagator:
         self.num_params = len(self.tape.trainable_params)
 
         self._propagated = None
+        
+        self.hist : np.ndarray = np.array([], dtype=int)
+        self.trim_hist : np.ndarray = np.array([], dtype=int)
             
     def propagate(self, bar = True):
         self._propagated = []
         progress = tqdm.tqdm(self.observables, desc="Propagating observables", disable = not bar)
         for index, observable in enumerate(progress):
             progress.set_description(f"Propagating {self.observables[index]}")
-            self._propagated.append(obs.Obs.trim(obs.Obs.propagate(observable, self)))
+            propagated_dict = obs.Obs.propagate(observable, self)
+            propagated_trim_dict = obs.Obs.trim(propagated_dict)
+            self.hist = np.append(self.hist, p_dict_to_hist(propagated_dict))
+            self.trim_hist = np.append(self.trim_hist, p_dict_to_hist(propagated_trim_dict))
+            self._propagated.append(propagated_trim_dict)
 
     def lambdify(self, jax = False):
         if self._propagated is None:
@@ -62,7 +70,9 @@ class Propagator:
             params_vars = sp.symbols(names)
         else:
             if latex:
-                params_vars = sp.symbols(rf'\theta_0:{self.num_params}')  # Creates theta_0, theta_1, ...
+                params_vars = sp.symbols(
+                    [rf"\theta_{{{i}}}" for i in range(self.num_params)]
+                )
             else:
                 params_vars = sp.symbols(f'θ_0:{self.num_params}')  # Creates theta_0, theta_1, ...
         observable_vars = [sp.symbols(str(observable).replace("(", "").replace(")", "").replace(" ", "")) for observable in self.observables]
