@@ -4,8 +4,11 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.gridspec import GridSpec
 from matplotlib.ticker import MultipleLocator
 
+FIGSIZE = (8, 4)
+
 
 def plot_obsW(prop, untrim=True, log=False):
+    plt.figure(figsize=FIGSIZE)
     # Define bin edges
     bins = np.arange(max(prop.histW) + 2)
 
@@ -27,7 +30,7 @@ def plot_obsW(prop, untrim=True, log=False):
         rwidth=0.7,
         color="royalblue",
         edgecolor="black",
-        label="Trimmed",
+        label="Effective",
         log=log,
     )
 
@@ -38,10 +41,10 @@ def plot_obsW(prop, untrim=True, log=False):
     plt.xlabel("Pauli weight")
     plt.ylabel("Counts (log scale)" if log else "Counts")
     plt.legend()
-    plt.show()
 
 
 def plot_obsF(prop, log=False):
+    plt.figure(figsize=FIGSIZE)
     # Define bin edges
     bins = np.arange(max(prop.histF) + 2)
 
@@ -62,7 +65,7 @@ def plot_obsF(prop, log=False):
         rwidth=0.7,
         color="forestgreen",
         edgecolor="black",
-        label="Trimmed",
+        label="Effective",
         log=log,
     )
 
@@ -73,7 +76,6 @@ def plot_obsF(prop, log=False):
     plt.xlabel("Frequency")
     plt.ylabel("Counts (log scale)" if log else "Counts")
     plt.legend()
-    plt.show()
 
 
 def plot_obs2D(prop, cmap=None, log=False):
@@ -135,4 +137,3 @@ def plot_obs2D(prop, cmap=None, log=False):
 
     # remove all extra padding
     plt.subplots_adjust(left=0.05, right=1, top=0.9, bottom=0.1)
-    plt.show()

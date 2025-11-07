@@ -1,3 +1,4 @@
+import copy
 from typing import Callable
 
 import h5py
@@ -136,6 +137,7 @@ class Propagator:
         loss_hist = []
         if theta0 is None:
             theta0 = np.random.rand(self.num_params)
+        params_hist = [theta0]
 
         if method.upper() == "BFGS":
 
@@ -180,9 +182,11 @@ class Propagator:
                 )
                 theta.grad = grad_theta
                 optimizer.step()
+                params_hist.append(copy.deepcopy(theta.detach().numpy()))
 
             vals, _ = self.eval_and_grad(theta.detach().numpy(), which)
             self.loss_hist = loss_hist
+            self.params_hist = params_hist
             return type("Result", (), {"x": theta.detach().numpy(), "fun": loss(vals)})
 
         else:
