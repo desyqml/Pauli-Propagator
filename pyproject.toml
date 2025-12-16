@@ -11,6 +11,7 @@ dependencies = [
     "pennylane==0.42.3",
     "sympy>=1.14.0",
     "tqdm>=4.67.1",
+    "torch==2.8.0",
     "jax==0.5.0",
     "jaxlib==0.5.0",
     "h5py==3.14.0",
