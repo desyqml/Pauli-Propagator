@@ -2,15 +2,12 @@ import copy
 from typing import Callable
 
 import h5py
-import jax.numpy as jnp  # noqa: F401
 import numpy as np
 import pennylane as qml
 import sympy as sp
-import torch
 import tqdm
 from IPython.display import Math, display
 from pennylane.tape import QuantumTape
-from scipy.optimize import minimize as scipy_minimize
 
 from . import observables as obs
 from .utils import (
