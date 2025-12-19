@@ -3,7 +3,7 @@
 
 ## Overview
 
-This project focuses on the propagation of Pauli operators through parametrized quantum circuits. It leverages the capabilities of the PennyLane library to define quantum circuits and apply transformations to observables.
+Convert the expectation values of a circuit’s observables into explicit functions of the circuit’s parameters.
 
 ## Usage
 
