@@ -124,74 +124,6 @@ class Propagator:
         else:
             return eval_f_and_grad_numba(theta, *self._parsed[which])
 
-    def grad(self, theta, which=None):
-        """Evaluate gradients only."""
-        if which is None:
-            return np.array(
-                [eval_f_and_grad_numba(theta, *parsed)[1] for parsed in self._parsed]
-            )
-        else:
-            return eval_f_and_grad_numba(theta, *self._parsed[which])[1]
-
-    def minimize(self, loss, theta0=None, method="BFGS", which=None, **kwargs):
-        loss_hist = []
-        if theta0 is None:
-            theta0 = np.random.rand(self.num_params)
-        params_hist = [theta0]
-
-        if method.upper() == "BFGS":
-
-            def fun_and_grad(theta):
-                vals, grads = self.eval_and_grad(theta, which)
-                L = loss(vals)
-                # chain rule: ∇θ L = Σ_i dL/dvals_i * grads[i]
-                dL_dvals = np.zeros_like(vals)
-                eps = 1e-8
-                for i in range(len(vals)):
-                    v_eps = vals.copy()
-                    v_eps[i] += eps
-                    dL_dvals[i] = (loss(v_eps) - L) / eps
-                grad_theta = np.sum(dL_dvals[:, None] * grads, axis=0)
-                return L, grad_theta
-
-            return scipy_minimize(fun_and_grad, theta0, jac=True, **kwargs)
-
-        elif method.upper() == "ADAM":
-            lr = kwargs.pop("lr", 0.05)
-            maxiter = kwargs.pop("maxiter", 2000)
-            theta = torch.tensor(theta0, dtype=torch.float64, requires_grad=True)
-            optimizer = torch.optim.Adam([theta], lr=lr)
-
-            for step in range(maxiter):
-                optimizer.zero_grad()
-                vals, grads = self.eval_and_grad(theta.detach().numpy(), which)
-                L = loss(vals)
-                loss_hist.append(L)
-
-                # compute dL/dtheta via chain rule
-                dL_dvals = torch.zeros_like(torch.tensor(vals, dtype=torch.float64))
-                eps = 1e-8
-                for i in range(len(vals)):
-                    v_eps = vals.copy()
-                    v_eps[i] += eps
-                    dL_dvals[i] = (loss(v_eps) - L) / eps
-
-                grad_theta = torch.tensor(
-                    np.sum(dL_dvals[:, None].numpy() * grads, axis=0),
-                    dtype=torch.float64,
-                )
-                theta.grad = grad_theta
-                optimizer.step()
-                params_hist.append(copy.deepcopy(theta.detach().numpy()))
-
-            vals, _ = self.eval_and_grad(theta.detach().numpy(), which)
-            self.loss_hist = loss_hist
-            self.params_hist = params_hist
-            return type("Result", (), {"x": theta.detach().numpy(), "fun": loss(vals)})
-
-        else:
-            raise ValueError(f"Unknown optimization method: {method}")
-
     def expression(self, names=[], latex=True):
         if self._propagated is None:
             raise ValueError("Propagator has not been propagated yet")
@@ -222,7 +154,7 @@ class Propagator:
             expr = 0
             for key, p_val in pauli_dict.items():
                 for val in p_val:
-                    sub_expr = +1 if val[0] > 0 else -1
+                    sub_expr = val[0]
                     if len(val) > 1:
                         for v in val[1:]:
                             trig, num = v[0], v[1:]

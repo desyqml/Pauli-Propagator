@@ -5,12 +5,87 @@
 
 This project focuses on the propagation of Pauli operators through parametrized quantum circuits. It leverages the capabilities of the PennyLane library to define quantum circuits and apply transformations to observables.
 
-## Features
+## Usage
 
-- **Circuit Definition**: Use PennyLane to define quantum circuits with an arbitrary number of qubits and layers.
-- **Pauli Propagation**: Efficiently propagate Pauli operators through the circuits to analyze the functional dependency of the output given the parameters.
-> This project currently only supports the following gates: Pauli rotations, Hadamard, CNOT and CZ. Other gates need to be implemented.
-- **SymPy Integration**: Symbolic representation of the circuit as a function of the parameters
+* First import all the necessary libraries:
+
+```python
+import pennylane as qml # To define the circuit
+from pprop.propagator import Propagator # For Pauli Propagation
+```
+
+* Define the circuit as a function of the parameters
+
+```python
+# Function of parameters
+def ansatz(params : list[float]):
+    qml.RX(params[0], wires=0)
+    qml.RX(params[1], wires=1)
+
+    qml.RY(params[2], wires=0)
+    qml.RY(params[3], wires=1)
+
+    qml.Hadamard(wires = 2)
+
+    qml.Barrier()
+
+    qml.CNOT(wires = [0, 1])
+    qml.CNOT(wires = [1, 2])
+
+    qml.Barrier()
+
+    qml.RY(params[4], wires=0)
+    qml.RY(params[5], wires=1)
+    qml.RY(params[6], wires=2)
+    
+    return [qml.expval(qml.PauliZ(qubit)) for qubit in range(1)] + [qml.expval(qml.PauliX(0)@qml.PauliX(1)@qml.PauliX(2))] + [qml.expval(qml.PauliY(2))] + [qml.expval(-qml.PauliX(0)@qml.PauliX(1)@qml.PauliX(2) + 13*qml.PauliZ(2))]
+```
+
+* Define the propagator
+```python
+prop = Propagator(
+    ansatz, 
+    k1 = None, # Cutoff on the Pauli Weight
+    k2 = None, # Cutoff on the frequencies
+)
+```
+``` 
+>>> prop
+Propagator
+  Number of qubits : 3
+  Trainable parameters : 7
+  Cutoff 1: None | Cutoff 2: None
+  Observables [Z(0), X(0) @ X(1) @ X(2), Y(2), -1.0 * (X(0) @ X(1) @ X(2)) + 13.0 * Z(2)]
+0: ──RX──RY──||─╭●─────||──RY─┤  <Z> ╭<X@X@X>      ╭<𝓗>
+1: ──RX──RY──||─╰X─╭●──||──RY─┤      ├<X@X@X>      ├<𝓗>
+2: ──H───────||────╰X──||──RY─┤      ╰<X@X@X>  <Y> ╰<𝓗>
+```
+
+* Propagate the observables:
+```
+prop.propagate()
+Propagating -1.0 * (X(0) @ X(1) @ X(2)) + 13.0 * Z(2): 100%|██████████| 4/4 [00:00<00:00, 922.53it/s]
+```
+
+* Get the output expectation values through `.eval(params)`
+```python
+random_params = qml.numpy.arange(prop.num_params)
+prop_output = prop.eval(random_params)
+[ 0.32448207 -0.5280619   0.          4.16046337]
+```
+
+* You can inspect the explicit functions using `.expression()`
+```python
+prop.expression()
+```
+
+$Z0 = -sin(\theta_{2})*sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1}) + cos(\theta_{0})*cos(\theta_{2})*cos(\theta_{4})$
+
+$X0@X1@X2 = -sin(\theta_{0})*sin(\theta_{1})*sin(\theta_{5})*cos(\theta_{4})*cos(\theta_{6}) + sin(\theta_{2})*cos(\theta_{0})*cos(\theta_{4})*cos(\theta_{5})*cos(\theta_{6}) + sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1})*cos(\theta_{2})*cos(\theta_{5})*cos(\theta_{6}) + sin(\theta_{4})*sin(\theta_{5})*cos(\theta_{1})*cos(\theta_{3})*cos(\theta_{6})$
+
+$Y2 = 0$ 
+
+$-1.0*X0@X1@X2+3*Z2 = sin(\theta_{0})*sin(\theta_{1})*sin(\theta_{5})*cos(\theta_{4})*cos(\theta_{6}) - sin(\theta_{0})*sin(\theta_{3})*cos(\theta_{1}) - sin(\theta_{2})*cos(\theta_{0})*cos(\theta_{4})*cos(\theta_{5})*cos(\theta_{6}) - sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1})*cos(\theta_{2})*cos(\theta_{5})*cos(\theta_{6}) - sin(\theta_{4})*sin(\theta_{5})*cos(\theta_{1})*cos(\theta_{3})*cos(\theta_{6}) - 13.0*\sin(\theta_{6})$
 
 ## Installation
 
@@ -18,33 +93,6 @@ To install the necessary dependencies, run the following command:
 
 ```bash
 pip install -e .
-```
-
-## Usage
-
-### Importing Required Libraries
-
-```python
-import pennylane as qml
-from pprop.propagator import Propagator
-```
-
-### Defining a Circuit
-
-```python
-def ansatz(params):
-    for q in range(n_qubits):
-        qml.Hadamard(wires=q)
-        qml.RY(params[q], wires=q)
-    # Add parameterized gates and entanglement layers
-    return [qml.expval(qml.PauliZ(0))]
-```
-
-### Using the Propagator
-
-```python
-propagator = Propagator(ansatz)
-propagator.propagate()
 ```
 
 ## Examples
