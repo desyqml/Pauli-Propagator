@@ -78,21 +78,10 @@ prop_output = prop.eval(random_params)
 ```python
 prop.expression()
 ```
-$\begin{align}
-Z0 = &-sin(\theta_{2})*sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1})\notag\\  &+ cos(\theta_{0})*cos(\theta_{2})*cos(\theta_{4})\notag
-\end{align}$
 
-$\begin{align}
-X0@X1@X2 = &-sin(\theta_{0})*sin(\theta_{1})*sin(\theta_{5})*cos(\theta_{4})*cos(\theta_{6}) \notag \\&+ sin(\theta_{2})*cos(\theta_{0})*cos(\theta_{4})*cos(\theta_{5})*cos(\theta_{6}) \notag \\&+ sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1})*cos(\theta_{2})*cos(\theta_{5})*cos(\theta_{6}) \notag \\&+ sin(\theta_{4})*sin(\theta_{5})*cos(\theta_{1})*cos(\theta_{3})*cos(\theta_{6})\notag
-\end{align}$
+$Z0 = -sin(\theta_{2})*sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1}) + cos(\theta_{0})*cos(\theta_{2})*cos(\theta_{4})$
 
-$\begin{align}
-Y2 = 0\notag
-\end{align}$
-
-$\begin{align}
--1.0*X0@X1@X2+3*Z2 =&\notag + sin(\theta_{0})*sin(\theta_{1})*sin(\theta_{5})*cos(\theta_{4})*cos(\theta_{6}) \\\notag&- sin(\theta_{0})*sin(\theta_{3})*cos(\theta_{1}) \notag\\ & - sin(\theta_{2})*cos(\theta_{0})*cos(\theta_{4})*cos(\theta_{5})*cos(\theta_{6}) \notag\\ & - sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1})*cos(\theta_{2})*cos(\theta_{5})*cos(\theta_{6}) \notag\\ & - sin(\theta_{4})*sin(\theta_{5})*cos(\theta_{1})*cos(\theta_{3})*cos(\theta_{6})\notag\\ &- 13.0*\sin(\theta_{6})\notag
-\end{align}$
+...
 
 ## Installation
 
