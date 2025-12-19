@@ -1,7 +1,5 @@
-import copy
-from typing import Callable
+from typing import Callable, Sequence
 
-import h5py
 import numpy as np
 import pennylane as qml
 import sympy as sp
@@ -10,14 +8,10 @@ from IPython.display import Math, display
 from pennylane.tape import QuantumTape
 
 from . import observables as obs
-from .utils import (
+from .utils.numba import (
     eval_f_and_grad_numba,
     eval_f_numba,
-    obs_to_tuple,
-    p_dict_to_histF,
-    p_dict_to_histW,
     parse_terms_numba,
-    tuple_to_obs,
 )
 
 
@@ -28,8 +22,18 @@ class Propagator:
         k1: int | None = None,
         k2: int | None = None,
     ):
-        self.loaded = False
+        """
+        Initialize a Propagator object.
 
+        Parameters
+        ----------
+        ansatz : Callable
+            Ansatz circuit as a function of parameters.
+        k1 : int | None, default=None
+            Cutoff on the Pauli Weight.
+        k2 : int | None, default=None
+            Cutoff on the frequencies.
+        """
         # Storing init parameters
         self.k1 = k1
         self.k2 = k2
@@ -68,12 +72,15 @@ class Propagator:
 
         self._propagated = None
 
-        self.histW: np.ndarray = np.array([], dtype=int)
-        self.trim_histW: np.ndarray = np.array([], dtype=int)
-        self.histF: np.ndarray = np.array([], dtype=int)
-        self.trim_histF: np.ndarray = np.array([], dtype=int)
+    def propagate(self, bar: bool=True):
+        """
+        Propagate the observables in the circuit.
 
-    def propagate(self, bar=True):
+        Parameters
+        ----------
+        bar : bool
+            Whether to show a progress bar. Defaults to True.
+        """
         self._propagated = []
         progress = tqdm.tqdm(
             self.observables, desc="Propagating observables", disable=not bar
@@ -82,26 +89,37 @@ class Propagator:
             progress.set_description(f"Propagating {self.observables[index]}")
             propagated_dict = obs.Obs.propagate(observable, self)
             propagated_trim_dict = obs.Obs.trim(propagated_dict)
-            self.histW = np.append(self.histW, p_dict_to_histW(propagated_dict))
-            self.trim_histW = np.append(
-                self.trim_histW, p_dict_to_histW(propagated_trim_dict)
-            )
-            self.histF = np.append(self.histF, p_dict_to_histF(propagated_dict))
-            self.trim_histF = np.append(
-                self.trim_histF, p_dict_to_histF(propagated_trim_dict)
-            )
+
             self._propagated.append(propagated_trim_dict)
         self._parsed = [parse_terms_numba(d) for d in self._propagated]
 
-    def eval(self, theta, which=None):
-        """Evaluate one or all expectation values."""
+    def eval(self, theta: Sequence[float], which: None | int = None):
+        """
+        Evaluate the expectation values of the propagated observables.
+
+        Parameters
+        ----------
+        theta : Sequence[float]
+            Parameters of the propagator.
+        which : None | int
+            Which observable to evaluate. If None, evaluate all of them.
+        """
         if which is None:
             return np.array([eval_f_numba(theta, *parsed) for parsed in self._parsed])
         else:
             return eval_f_numba(theta, *self._parsed[which])
 
-    def eval_and_grad(self, theta, which=None):
-        """Evaluate value and gradient(s)."""
+    def eval_and_grad(self, theta: Sequence[float], which: None | int = None):
+        """
+        Evaluate the expectation values and gradients of the propagated observables.
+
+        Parameters
+        ----------
+        theta : Sequence[float]
+            Parameters of the propagator.
+        which : None | int
+            Which observable to evaluate. If None, evaluate all of them.
+        """
         if which is None:
             vals = []
             grads = []
@@ -121,7 +139,17 @@ class Propagator:
         else:
             return eval_f_and_grad_numba(theta, *self._parsed[which])
 
-    def expression(self, names=[], latex=True):
+    def expression(self, names : Sequence[str] = [], latex: bool = True):
+        """
+        Returns the explicit expressions of the propagated observables.
+
+        Parameters
+        ----------
+        names : Sequence[str]
+            Names of the parameters. If None, defaults to theta_0, theta_1, ...
+        latex : bool
+            Whether to return the expressions in LaTeX format. Defaults to True.
+        """
         if self._propagated is None:
             raise ValueError("Propagator has not been propagated yet")
 
@@ -171,106 +199,7 @@ class Propagator:
         return expressions
 
     def __repr__(self):
-        reprstr = "Propagator\n" if not self.loaded else "Propagator (loaded)\n"
+        reprstr = "Propagator\n"
         reprstr += f"  Number of qubits : {self.num_qubits}\n"
         reprstr += f"  Trainable parameters : {self.num_params}\n"
-        if not self.loaded:
-            reprstr += f"  Cutoff 1: {self.k1} | Cutoff 2: {self.k2}\n"
-            reprstr += f"  Observables {self.observables}"
-            reprstr += "\n"
-            reprstr += qml.drawer.tape_text(self.tape)
         return reprstr
-
-    def save(self, filename: str):
-        with h5py.File(filename, "w") as f:
-            # Create top-level groups
-            grp_obs = f.create_group("obs")
-            grp_hists = f.create_group("hists")
-            grp_params = f.create_group("params")
-
-            # Save observables and their parsed data
-            for parsed, obs in zip(self._parsed, self.observables):
-                tag = str(obs)  # name group after observable
-                fun_coeffs, fun_factors, fun_types, fun_offsets = parsed
-                obs_coeff, obs_basis, obs_wires = obs_to_tuple(obs)
-
-                # create subgroup for this observable
-                grp_tag = grp_obs.create_group(tag)
-
-                # fun datasets
-                grp_fun = grp_tag.create_group("fun")
-                grp_fun.create_dataset("coeffs", data=fun_coeffs)
-                grp_fun.create_dataset("factors", data=fun_factors)
-                grp_fun.create_dataset("types", data=fun_types)
-                grp_fun.create_dataset("offsets", data=fun_offsets)
-
-                # obs datasets
-                grp_o = grp_tag.create_group("obs")
-                grp_o.create_dataset("coeffs", data=obs_coeff)
-                grp_o.create_dataset("basis", data=obs_basis)
-                grp_o.create_dataset("wires", data=obs_wires)
-
-            # Save histograms separately
-            grp_hists.create_dataset("histW", data=self.histW)
-            grp_hists.create_dataset("histF", data=self.histF)
-            grp_hists.create_dataset("trim_histW", data=self.trim_histW)
-            grp_hists.create_dataset("trim_histF", data=self.trim_histF)
-
-            grp_params.create_dataset("num_params", data=self.num_params)
-
-    @classmethod
-    def load(cls, filename: str):
-        with h5py.File(filename, "r") as f:
-            _parsed = []
-            observables = []
-
-            # Load observables
-            grp_obs = f["obs"]
-            for tag in grp_obs.keys():
-                grp_tag = grp_obs[tag]
-                grp_fun = grp_tag["fun"]
-                grp_o = grp_tag["obs"]
-
-                _parsed.append(
-                    [
-                        np.array(grp_fun["coeffs"]),
-                        np.array(grp_fun["factors"]),
-                        np.array(grp_fun["types"]),
-                        np.array(grp_fun["offsets"]),
-                    ]
-                )
-                observables.append(
-                    tuple_to_obs(
-                        (
-                            np.array(grp_o["coeffs"]),
-                            np.array(grp_o["basis"]),
-                            np.array(grp_o["wires"]),
-                        )
-                    )
-                )
-
-            # Load histograms
-            grp_hists = f["hists"]
-            histW = np.array(grp_hists["histW"])
-            histF = np.array(grp_hists["histF"])
-            trim_histW = np.array(grp_hists["trim_histW"])
-            trim_histF = np.array(grp_hists["trim_histF"])
-
-            num_params = f["params"]["num_params"][()]
-
-            def ansatz(p):
-                qml.RX(p[0], wires=0)
-                return [qml.expval(obs) for obs in observables]
-
-            obj = cls(ansatz)
-            obj.loaded = True
-            obj.num_params = num_params
-
-            obj._parsed = _parsed
-            obj.observables = observables
-            obj.histW = histW
-            obj.histF = histF
-            obj.trim_histW = trim_histW
-            obj.trim_histF = trim_histF
-
-        return obj

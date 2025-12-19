@@ -1,7 +1,7 @@
 import pennylane as qml
 
 from .gates import apply, tables
-from .utils import get_base, get_wires, is_ps
+from .utils.obs import get_base, get_wires, is_ps
 
 
 class Obs:

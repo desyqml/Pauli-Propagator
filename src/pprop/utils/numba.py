@@ -1,29 +1,5 @@
 import numba
 import numpy as np
-import pennylane as qml
-from pennylane.ops import Sum
-
-
-def p_dict_to_histW(p_dict):
-    if p_dict:
-        return np.concatenate(
-            [
-                np.full(len(coeffs), len(gatequbit[0]), dtype=int)
-                for gatequbit, coeffs in p_dict.items()
-            ]
-        )
-    return np.array([], dtype=int)
-
-
-def p_dict_to_histF(p_dict):
-    if p_dict:
-        return np.concatenate(
-            [
-                np.array([len(c) - 1 for c in coeffs], dtype=int)
-                for coeffs in p_dict.values()
-            ]
-        )
-    return np.array([], dtype=int)
 
 
 @numba.njit
@@ -106,51 +82,3 @@ def parse_terms_numba(term_dict):
         np.array(types, dtype=np.int8),
         np.array(offsets, dtype=np.int64),
     )
-
-
-def is_ps(op):
-    """
-    Returns True if the argument is a linear combination of operators (Sum),
-    False otherwise.
-    """
-    return isinstance(op, Sum)
-
-
-def get_wires(obs):
-    return obs.wires
-
-
-def get_base(obs):
-    scalar = getattr(obs, "scalar", 1)
-    obs = (obs / scalar).simplify()
-    if hasattr(obs, "__getitem__"):
-        return [ob.basis for ob in obs]
-    return [obs.basis]
-
-
-def obs_to_tuple(observable):
-    # If observable does not implement .terms(), wrap it into a Sum
-    try:
-        coeffs, pauli_words = observable.terms()
-        basis = []
-        wires = []
-
-        for pw in pauli_words:
-            basis.append(get_base(pw))
-            wires.append(list(pw.wires))
-    except:
-        coeffs = [getattr(observable, "scalar", 1)]
-        basis = [get_base(observable)]
-        wires = [list(get_wires(observable))]
-
-    return coeffs, basis, wires
-
-
-def tuple_to_obs(otuple):
-    obs = []
-    coeffs, basis, wires = otuple
-    for coeff, base, wire in zip(coeffs, basis, wires):
-        pw = qml.pauli.PauliWord(dict(zip(wire, base.astype(str))))
-        obs.append(coeff * pw)
-
-    return qml.ops.op_math.Sum(*obs)

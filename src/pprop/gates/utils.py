@@ -2,50 +2,56 @@ from . import tables
 
 
 def does_commute(ops, wires, rot_dict):
-    # Extract the qubit and operator from the rotation dictionary
+    """
+    Check whether a Pauli word commutes with a single-qubit rotation.
+
+    If the rotation qubit is not present in the Pauli word,
+    the operators commute.
+    """
     rotation_qubit, rotation_operator = next(iter(rot_dict.items()))
 
-    # Check if the qubit involved in the rotation is in the Pauli word (dictionary)
     if rotation_qubit not in wires:
-        # If the qubit is not in the Pauli word, they commute
         return True
+
+    return ops[wires.index(rotation_qubit)] == rotation_operator
+
+
+def rotate(basis, wires, rot_dict):
+    """
+    Apply the non-commuting part of a single-qubit rotation
+    in the Heisenberg picture.
+
+    Returns the transformed Pauli word and the commutator phase.
+    """
+    rotation_qubit, rotation_operator = list(rot_dict.items())[0]
+
+    # Current Pauli operator on the rotation qubit
+    if rotation_qubit in wires:
+        current_op = basis[wires.index(rotation_qubit)]
     else:
-        # If the qubit is in the Pauli word, check if the operators are the same
-        return ops[wires.index(rotation_qubit)] == rotation_operator
+        current_op = "I"
 
-def rotate(p_basis, p_wire, rot_table):
-    # Extract the qubit and operator from the rotation dictionary
-    rotation_qubit, rotation_operator = list(rot_table.items())[0]
+    evolved_op, factor = tables.rotation[(current_op, rotation_operator)]
 
-    # Get the current Pauli operator on the rotation qubit, or 'I' if it isn't present
-    if rotation_qubit in p_wire:
-        op_pw = p_basis[p_wire.index(rotation_qubit)]
-    else:
-        op_pw = 'I'
-    
-    # Use the rotation table to get the evolved operator and the factor
-    evolved_op, factor = tables.rotation[(op_pw, rotation_operator)]
+    new_basis = list(basis)
+    new_wires = list(wires)
 
-    # Update the gate of the involved qubit to evolved_op
-    new_p_basis = list(p_basis)
-    new_p_wire = list(p_wire)
-    
-    if rotation_qubit in p_wire:
-        index = p_wire.index(rotation_qubit)
-        if evolved_op == 'I':
-            # If the new operator is 'I', remove the qubit from both basis and wire
-            del new_p_basis[index]
-            del new_p_wire[index]
+    if rotation_qubit in wires:
+        index = wires.index(rotation_qubit)
+        if evolved_op == "I":
+            del new_basis[index]
+            del new_wires[index]
         else:
-            # Otherwise, update the Pauli operator
-            new_p_basis[index] = evolved_op
+            new_basis[index] = evolved_op
     else:
-        # If the qubit isn't in the current term, add it if the evolved operator isn't 'I'
-        if evolved_op != 'I':
-            new_p_basis.append(evolved_op)
-            new_p_wire.append(rotation_qubit)
+        if evolved_op != "I":
+            new_basis.append(evolved_op)
+            new_wires.append(rotation_qubit)
 
-    # Sort the wire and basis together to maintain the correct order
-    new_p_wire, new_p_basis = zip(*sorted(zip(new_p_wire, new_p_basis))) if new_p_wire else ((), ())
-    
-    return tuple(new_p_basis), tuple(new_p_wire), factor
+    # Keep wire ordering consistent
+    if new_wires:
+        new_wires, new_basis = zip(*sorted(zip(new_wires, new_basis)))
+    else:
+        new_wires, new_basis = (), ()
+
+    return tuple(new_basis), tuple(new_wires), factor
