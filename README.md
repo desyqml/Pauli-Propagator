@@ -99,23 +99,22 @@ For detailed examples, please refer to the `notebooks` directory, which contains
 If you use this software in your research or publications, **please cite** the following: 
 
 ```
-@software{monaco_2025_16028010,
+@software{monaco_2025_17989023,
   author       = {Monaco, Saverio and
                   Slim, Jamal and
                   Krücker, Dirk and
                   Borras, Kerstin},
-  title        = {desyqml/Pauli-Propagator: Initial public release},
-  month        = jul,
+  title        = {Pauli-Propagator},
+  month        = dec,
   year         = 2025,
   publisher    = {Zenodo},
-  version      = {v1.0.0},
-  doi          = {10.5281/zenodo.16028010},
-  url          = {https://doi.org/10.5281/zenodo.16028010},
-  swhid        = {swh:1:dir:a06e8b73fb75197f48b15b423b99571357679b62
+  doi          = {10.5281/zenodo.17989023},
+  url          = {https://doi.org/10.5281/zenodo.17989023},
+  swhid        = {swh:1:dir:1284be865198eb2a387c47e0b37276dbb507dda0
                    ;origin=https://doi.org/10.5281/zenodo.16028009;vi
-                   sit=swh:1:snp:186724ea7eaa1696eb486cf8200c6315020d
-                   ff59;anchor=swh:1:rel:8c4e1c4d8b0698d90229118d6456
-                   5d167ff430f2;path=desyqml-Pauli-Propagator-2e8bfae
+                   sit=swh:1:snp:622f5e838c4a4d45bf85f4f0b08e9f916707
+                   f133;anchor=swh:1:rel:17df8835b58b83156406bcf18d0d
+                   2622b4ac0b92;path=Pauli-Propagator-1.0.1
                   },
 }
 ```
