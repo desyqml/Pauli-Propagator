@@ -1,5 +1,5 @@
 # Pauli Propagation of Parametrized Circuits
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16028010.svg)](https://doi.org/10.5281/zenodo.16028010)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17989023.svg)](https://doi.org/10.5281/zenodo.17989023)
 
 ## Overview
 
