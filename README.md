@@ -19,11 +19,20 @@ from pprop.propagator import Propagator # For Pauli Propagation
 ```python
 # Function of parameters
 def ansatz(params : list[float]):
-    qml.RX(params[0], wires=0); qml.RX(params[1], wires=1)
-    qml.RY(params[2], wires=0); qml.RY(params[3], wires=1)
+    qml.RX(params[0], wires=0)
+    qml.RX(params[1], wires=1)
+
+    qml.RY(params[2], wires=0)
+    qml.RY(params[3], wires=1)
+
     qml.Hadamard(wires = 2)
 
-    qml.CNOT(wires = [0, 1]); qml.CNOT(wires = [1, 2])
+    qml.Barrier()
+
+    qml.CNOT(wires = [0, 1])
+    qml.CNOT(wires = [1, 2])
+
+    qml.Barrier()
 
     qml.RY(params[4], wires=0)
     qml.RY(params[5], wires=1)
