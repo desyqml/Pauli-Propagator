@@ -1,8 +1,8 @@
 [project]
 name = "Pauli-Propagation"
-version = "1.0.1"
+version = "2.0.0"
 authors = [{ name = "Saverio Monaco", email = "saverio.monaco@desy.de" }]
-description = "Description"
+description = "A Pennylane-based toolkit for approximate symbolic Pauli propagation and evaluation of quantum circuit observables."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -24,3 +24,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pprop"]
+
+[project.optional-dependencies]
+dev = ["sphinx>=7", "furo", "myst-parser"]
