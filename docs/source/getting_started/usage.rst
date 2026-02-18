@@ -51,33 +51,34 @@ Usage
         k2 = None,  # Cutoff on the frequencies
     )
 
-* Example of `prop` output::
+* Example of `prop`::
 
     >>> prop
     Propagator
       Number of qubits : 3
       Trainable parameters : 7
-      Cutoff 1: None | Cutoff 2: None
-      Observables [Z(0), X(0) @ X(1) @ X(2), Y(2), -1.0 * (X(0) @ X(1) @ X(2)) + 13.0 * Z(2)]
-    0: ──RX──RY──||─╭●─────||──RY─┤  <Z> ╭<X@X@X>      ╭<𝓗>
-    1: ──RX──RY──||─╰X─╭●──||──RY─┤      ├<X@X@X>      ├<𝓗>
-    2: ──H───────||────╰X──||──RY─┤      ╰<X@X@X>  <Y> ╰<𝓗>
 
 * Propagate the observables::
 
     >>> prop.propagate()
-    Propagating -1.0 * (X(0) @ X(1) @ X(2)) + 13.0 * Z(2): 100%|██████████| 4/4 [00:00<00:00, 922.53it/s]
+    Propagating 1.0*Z0
+    Propagating 1.0*X0 X1 X2
+    Propagating 1.0*Y2
+    Propagating -1.0*X0 X1 X2 + 13.0*Z2
 
 * Get the output expectation values::
 
     >>> import qml
     >>> random_params = qml.numpy.arange(prop.num_params)
-    >>> prop_output = prop.eval(random_params)
+    >>> prop_output = prop(random_params)
     >>> prop_output
     [ 0.32448207 -0.5280619   0.          4.16046337]
 
 * Inspect explicit functions::
 
-    >>> prop.expression()
-    Z0 = -sin(theta_2)*sin(theta_3)*sin(theta_4)*cos(theta_0)*cos(theta_1) + cos(theta_0)*cos(theta_2)*cos(theta_4)
+    >>> prop.exprs
+    [-1.0*sin(θ2)*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1) + 1.0*cos(θ0)*cos(θ2)*cos(θ4),
+     -1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) + 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) + 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) + 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6),
+     0,
+     1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) - 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) - 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) - 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6) - 13.0*sin(θ6)]
     ...

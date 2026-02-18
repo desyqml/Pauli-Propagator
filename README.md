@@ -54,34 +54,38 @@ prop = Propagator(
 Propagator
   Number of qubits : 3
   Trainable parameters : 7
-  Cutoff 1: None | Cutoff 2: None
-  Observables [Z(0), X(0) @ X(1) @ X(2), Y(2), -1.0 * (X(0) @ X(1) @ X(2)) + 13.0 * Z(2)]
-0: ──RX──RY──||─╭●─────||──RY─┤  <Z> ╭<X@X@X>      ╭<𝓗>
-1: ──RX──RY──||─╰X─╭●──||──RY─┤      ├<X@X@X>      ├<𝓗>
-2: ──H───────||────╰X──||──RY─┤      ╰<X@X@X>  <Y> ╰<𝓗>
+```
+``` 
+>>> prop.show()
+0: ──RX(0.00)──RY(2.00)──||─╭●─────||──RY(4.00)─┤  <Z> ╭<X@X@X>      ╭<𝓗(-1.00,13.00)>
+1: ──RX(1.00)──RY(3.00)──||─╰X─╭●──||──RY(5.00)─┤      ├<X@X@X>      ├<𝓗(-1.00,13.00)>
+2: ──H───────────────────||────╰X──||──RY(6.00)─┤      ╰<X@X@X>  <Y> ╰<𝓗(-1.00,13.00)>
 ```
 
 * Propagate the observables:
 ```
-prop.propagate()
-Propagating -1.0 * (X(0) @ X(1) @ X(2)) + 13.0 * Z(2): 100%|██████████| 4/4 [00:00<00:00, 922.53it/s]
+>>> prop.propagate()
+Propagating 1.0*Z0
+Propagating 1.0*X0 X1 X2
+Propagating 1.0*Y2
+Propagating -1.0*X0 X1 X2 + 13.0*Z2
 ```
 
-* Get the output expectation values through `.eval(params)`
+* Get the output expectation values by calling the class and feeding the circuit's parameters
 ```python
 random_params = qml.numpy.arange(prop.num_params)
-prop_output = prop.eval(random_params)
-[ 0.32448207 -0.5280619   0.          4.16046337]
+prop_output = prop(random_params)
+[ 0.32448205 -0.52806187  0.          4.1604633 ]
 ```
 
-* You can inspect the explicit functions using `.expression()`
-```python
-prop.expression()
+* You can inspect the explicit functions using `.exprs`
 ```
-
-$Z0 = -sin(\theta_{2})*sin(\theta_{3})*sin(\theta_{4})*cos(\theta_{0})*cos(\theta_{1}) + cos(\theta_{0})*cos(\theta_{2})*cos(\theta_{4})$
-
-...
+>>> prop.exprs
+[-1.0*sin(θ2)*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1) + 1.0*cos(θ0)*cos(θ2)*cos(θ4),
+ -1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) + 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) + 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) + 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6),
+ 0,
+ 1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) - 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) - 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) - 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6) - 13.0*sin(θ6)]
+```
 
 ## Installation
 
