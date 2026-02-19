@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../../src'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Pauli-Propagation'
+project = 'Pauli-Propagator'
 copyright = '2026, Saverio Monaco'
 author = 'Saverio Monaco'
 
@@ -78,4 +78,4 @@ html_theme_options = {
     "light_logo": "logo_light.svg",
     "dark_logo": "logo_dark.svg",
 }
-html_title = "Pauli-Propagation"
+html_title = "Pauli-Propagator"
