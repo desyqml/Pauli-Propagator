@@ -1,6 +1,6 @@
 from typing import Callable, Optional
 
-from jax import jit
+# from jax import jit
 from numpy import arange
 from pennylane import draw
 from pennylane.tape import QuantumTape
@@ -131,8 +131,8 @@ class Propagator:
 
     def _build_function(self):
         expr_vec = Matrix(self.exprs)
-        f = lambdify((self.theta,), expr_vec, modules="jax")
-        self._jf = jit(f)
+        self._f = lambdify((self.theta,), expr_vec, modules="jax")
+        # self._jf = jit(f)
         
     def propagate(self, debug: bool = False):
         """
@@ -182,4 +182,5 @@ class Propagator:
     
     @requires_propagation
     def __call__(self, theta):
-        return self._jf(theta).reshape(-1)
+        # return self._jf(theta).reshape(-1)
+        return self._f(theta).reshape(-1)
