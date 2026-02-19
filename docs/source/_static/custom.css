@@ -11,20 +11,8 @@
 
 .sig-name.descname {
     color: #00A6EB !important;
-    /* light */
-}
-
-[data-theme="dark"] .sig-name.descname {
-    color: #9f18ff !important;
-    /* dark */
 }
 
 .sig-prename {
     color: #e18300 !important;
-    /* light */
-}
-
-[data-theme="dark"] .sig-prename {
-    color: #b143ff !important;
-    /* dark */
 }
