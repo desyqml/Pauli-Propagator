@@ -4,8 +4,9 @@ This submodule defines the class SimpleNonClifford for all single-qubit non-clif
 from math import sqrt
 from typing import List, Optional, Tuple, Union
 
-import pennylane as qml
-import sympy as sp
+from pennylane import T as qmlT
+from sympy import Expr
+from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
 from ..pauli.sentence import PauliDict
@@ -23,7 +24,7 @@ class SimpleNonClifford(Gate):
 
         self.rule = rule  # dictionary defining Pauli propagation rule
 
-    def evolve(self, word: Tuple[PauliOp, Union[float, sp.Expr]], t: Union[sp.core.symbol.Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
+    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
         """
         Heisenberg evolve a Pauliword through the gate
         
@@ -83,5 +84,5 @@ class T(SimpleNonClifford):
             "X": (("X", +1/sqrt(2)), ("Y", -1/sqrt(2))),
             "Y": (("Y", +1/sqrt(2)), ("X", +1/sqrt(2))),
         }
-        super().__init__(wires, qml.T, parameter_index, rule)
+        super().__init__(wires, qmlT, parameter_index, rule)
 

@@ -1,10 +1,12 @@
-"""
-This submodule defines the class ControlledGate for all 2-qubits non-parametrized gates as well as the specific gates CNOT, CY, and CZ
+"""This submodule defines the class ControlledGate for all 2-qubits non-parametrized gates as well as the specific gates CNOT, CY, and CZ
 """
 from typing import List, Optional, Tuple, Union
 
-import pennylane as qml
-import sympy as sp
+from pennylane import CNOT as qmlCNOT
+from pennylane import CY as qmlCY
+from pennylane import CZ as qmlCZ
+from sympy import Expr
+from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
 from ..pauli.sentence import PauliDict
@@ -22,7 +24,7 @@ class ControlledGate(Gate):
 
         self.rule = rule  # dictionary defining Pauli Propagation rules
 
-    def evolve(self, word: Tuple[PauliOp, Union[float, sp.Expr]], t: Union[sp.core.symbol.Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
+    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
         """
         Heisenberg evolve a Pauliword through the gate
         
@@ -100,7 +102,7 @@ class CNOT(ControlledGate):
             "ZZ": ("IZ", +1),
         }
 
-        super().__init__(wires, qml.CNOT, parameter_index, rule)
+        super().__init__(wires, qmlCNOT, parameter_index, rule)
 
 class CY(ControlledGate):
     r"""
@@ -138,7 +140,7 @@ class CY(ControlledGate):
             "ZZ": ("IZ", +1),
         }
 
-        super().__init__(wires, qml.CY, parameter_index, rule)
+        super().__init__(wires, qmlCY, parameter_index, rule)
 
 class CZ(ControlledGate):
     r"""
@@ -176,4 +178,4 @@ class CZ(ControlledGate):
             "ZY": ("IY", +1),
         }
 
-        super().__init__(wires, qml.CZ, parameter_index, rule)
+        super().__init__(wires, qmlCZ, parameter_index, rule)

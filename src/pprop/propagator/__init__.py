@@ -1,10 +1,10 @@
 from typing import Callable, Optional
 
-import jax
-import numpy as np
-import pennylane as qml
-import sympy as sp
+from jax import jit
+from numpy import arange
+from pennylane import draw
 from pennylane.tape import QuantumTape
+from sympy import Matrix, lambdify, symbols
 
 from .. import gates
 from ..pauli.sentence import PauliDict
@@ -97,7 +97,7 @@ class Propagator:
 
         # Capture the ansatz in a quantum tape
         with QuantumTape() as self.tape:
-            ansatz(np.arange(100000))
+            ansatz(arange(100000))
 
         # Remove duplicate observables
         self.observables, removed_elements = remove_duplicate_observables(self.tape.observables)
@@ -124,15 +124,15 @@ class Propagator:
         self.num_params = max(params) + 1 if params else 0
 
         # Create symbolic vector θ0, θ1, ..., θN-1
-        self.theta = sp.symbols(f"θ0:{self.num_params}", real=True)
+        self.theta = symbols(f"θ0:{self.num_params}", real=True)
             
         # Flag to indicate if propagation has been run
         self._propagated = False
 
     def _build_function(self):
-        expr_vec = sp.Matrix(self.exprs)
-        f = sp.lambdify((self.theta,), expr_vec, modules="jax")
-        self._jf = jax.jit(f)
+        expr_vec = Matrix(self.exprs)
+        f = lambdify((self.theta,), expr_vec, modules="jax")
+        self._jf = jit(f)
         
     def propagate(self, debug: bool = False):
         """
@@ -163,8 +163,8 @@ class Propagator:
         """
         Display the quantum circuit
         """
-        drawer = qml.draw(self.ansatz)
-        print(drawer(np.arange(self.num_params)))
+        drawer = draw(self.ansatz)
+        print(drawer(arange(self.num_params)))
 
     def __repr__(self) -> str:
         """

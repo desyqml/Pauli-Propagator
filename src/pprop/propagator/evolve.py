@@ -3,7 +3,8 @@ This module handles the core evolution of Pauli Words through a list of gates
 """
 from typing import Tuple, Union
 
-import sympy as sp
+from sympy import Expr
+from sympy.core.symbol import Symbol
 
 from pprop.pauli.sentence import PauliDict
 
@@ -38,7 +39,7 @@ def to_expectation(paulidict: PauliDict):
             expr += coeff
     return expr
 
-def heisenberg(gates, paulidict: PauliDict, theta: Tuple[sp.core.symbol.Symbol, ...], k1: Union[int, None], k2: Union[int, None], debug: bool) -> Tuple[PauliDict, sp.Expr]:
+def heisenberg(gates, paulidict: PauliDict, theta: Tuple[Symbol, ...], k1: Union[int, None], k2: Union[int, None], debug: bool) -> Tuple[PauliDict, Expr]:
     """
     Heisenberg evolve a Pauliword through a list of gates
 

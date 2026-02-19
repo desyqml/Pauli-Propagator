@@ -3,8 +3,10 @@ This submodule defines the class SimpleClifford for all single-qubit Clifford ga
 """
 from typing import List, Optional, Tuple, Union
 
-import pennylane as qml
-import sympy as sp
+from pennylane import Hadamard as qmlH
+from pennylane import S as qmlS
+from sympy import Expr
+from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
 from ..pauli.sentence import PauliDict
@@ -22,7 +24,7 @@ class SimpleClifford(Gate):
 
         self.rule = rule  # dictionary defining Pauli Propagation rule
 
-    def evolve(self, word: Tuple[PauliOp, Union[float, sp.Expr]], t: Union[sp.core.symbol.Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
+    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
         """
         Heisenberg evolve a Pauliword through the gate
         
@@ -78,7 +80,7 @@ class H(SimpleClifford):
             "Y": ("Y", -1),
             "Z": ("X", +1),
         }
-        super().__init__(wires, qml.Hadamard, parameter_index, rule)
+        super().__init__(wires, qmlH, parameter_index, rule)
 
 
 # Make Hadamard an alias for H
@@ -104,4 +106,4 @@ class S(SimpleClifford):
             "X": ("Y", -1),
             "Y": ("X", +1),
         }
-        super().__init__(wires, qml.S, parameter_index, rule)
+        super().__init__(wires, qmlS, parameter_index, rule)

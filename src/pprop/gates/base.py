@@ -7,8 +7,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple, Union
 
-import pennylane as qml
-import sympy as sp
+from pennylane.operation import Operation
+from sympy import Expr
+from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
 from ..pauli.sentence import PauliDict
@@ -28,7 +29,7 @@ class Gate(ABC):
         Index of the parameter this gate uses (if any).
     """
 
-    def __init__(self, qml_gate: qml.operation.Operation, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, qml_gate: Operation, wires: List[int], parameter_index: Optional[int] = None) -> None:
         """
         Initialize a gate.
 
@@ -67,7 +68,7 @@ class Gate(ABC):
             raise ValueError(f"{self.qml_gate.__name__} gate does not accept parameters, but parameter_index={parameter_index} was given.")
 
     @abstractmethod
-    def evolve(self, word: Tuple[PauliOp, Union[float, sp.Expr]], t: Union[sp.core.symbol.Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
+    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
         """
         Heisenberg evolve a Pauliword through the gate
         """

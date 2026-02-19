@@ -4,8 +4,11 @@ This submodule defines the class RotationGate for all the single-qubit parametri
 
 from typing import Tuple, Union
 
-import pennylane as qml
-import sympy as sp
+from pennylane import RX as qmlRX
+from pennylane import RY as qmlRY
+from pennylane import RZ as qmlRZ
+from sympy import Expr, cos, sin
+from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
 from ..pauli.sentence import PauliDict
@@ -24,7 +27,7 @@ class RotationGate(Gate):
 
         self.rule = rule  # dictionary defining Pauli Propagation rule
 
-    def evolve(self, word: Tuple[PauliOp, Union[float, sp.Expr]], t: Union[sp.core.symbol.Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
+    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
         """
         Heisenberg evolve a Pauliword through the gate
         
@@ -64,7 +67,7 @@ class RotationGate(Gate):
         new_op = op.copy()
         new_op.set(wire, rule[0])
         
-        return PauliDict({op: sp.cos(t) * coeff, new_op: rule[1] * sp.sin(t) * coeff})
+        return PauliDict({op: cos(t) * coeff, new_op: rule[1] * sin(t) * coeff})
 
 class RX(RotationGate):
     r"""
@@ -84,7 +87,7 @@ class RX(RotationGate):
             "Y": ("Z", -1),
             "Z": ("Y", +1),
         }
-        super().__init__(wires, qml.RX, parameter_index, rule)
+        super().__init__(wires, qmlRX, parameter_index, rule)
 
 
 class RY(RotationGate):
@@ -105,7 +108,7 @@ class RY(RotationGate):
             "X": ("Z", +1),
             "Z": ("X", -1),
         }
-        super().__init__(wires, qml.RY, parameter_index, rule)
+        super().__init__(wires, qmlRY, parameter_index, rule)
 
 class RZ(RotationGate):
     r"""
@@ -125,4 +128,4 @@ class RZ(RotationGate):
             "X": ("Y", -1),
             "Y": ("X", +1),
         }
-        super().__init__(wires, qml.RZ, parameter_index, rule)
+        super().__init__(wires, qmlRZ, parameter_index, rule)

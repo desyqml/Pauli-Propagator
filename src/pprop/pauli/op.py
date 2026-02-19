@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-import pennylane as qml
+from pennylane import Identity, X, Y, Z
 
 
 class PauliOp:
@@ -111,15 +111,15 @@ class PauliOp:
         for k in indices:
             p = self[k]
             if p == "X":
-                ops.append(qml.X(k))
+                ops.append(X(k))
             elif p == "Y":
-                ops.append(qml.Y(k))
+                ops.append(Y(k))
             elif p == "Z":
-                ops.append(qml.Z(k))
+                ops.append(Z(k))
             # I: skip
 
         if not ops:
-            return qml.Identity(0)  # fallback Identity on first index
+            return Identity(0)  # fallback Identity on first index
 
         # Compose tensor product efficiently
         result = ops[0]
@@ -139,12 +139,12 @@ class PauliOp:
         for op in ops:
             wire = op.wires[0]  # single-qubit assumption
             cls_type = type(op)
-            if cls_type is qml.X:
+            if cls_type is X:
                 x_mask |= 1 << wire
-            elif cls_type is qml.Y:
+            elif cls_type is Y:
                 x_mask |= 1 << wire
                 z_mask |= 1 << wire
-            elif cls_type is qml.Z:
+            elif cls_type is Z:
                 z_mask |= 1 << wire
             # Identity: skip
 

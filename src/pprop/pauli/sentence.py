@@ -1,7 +1,7 @@
 from typing import ItemsView, KeysView, ValuesView
 
-import pennylane as qml
-import sympy as sp
+from pennylane.ops.op_math import sum as qml_sum
+from sympy import Expr, simplify
 
 from .op import PauliOp
 
@@ -25,7 +25,7 @@ class PauliDict:
         """
         self._dict = dict(data) if data is not None else dict()
 
-    def __setitem__(self, key: PauliOp, value: sp.Expr):
+    def __setitem__(self, key: PauliOp, value: Expr):
         """
         Set a PauliOp-coefficient pair in the dictionary.
 
@@ -42,7 +42,7 @@ class PauliDict:
         """
         self._dict[key] = value
 
-    def __getitem__(self, key: PauliOp) -> sp.Expr:
+    def __getitem__(self, key: PauliOp) -> Expr:
         """
         Get the coefficient associated with a PauliOp.
 
@@ -74,7 +74,7 @@ class PauliDict:
         """
         return key in self._dict
 
-    def items(self) -> ItemsView[PauliOp, sp.Expr]:
+    def items(self) -> ItemsView[PauliOp, Expr]:
         """
         Return a view object that displays a list of a given dictionary's key-value tuples.
 
@@ -96,7 +96,7 @@ class PauliDict:
         """
         return self._dict.keys()
 
-    def values(self) -> ValuesView[sp.Expr]:
+    def values(self) -> ValuesView[Expr]:
         """
         Return a view object that displays a list of the dictionary's values.
 
@@ -139,7 +139,7 @@ class PauliDict:
     def simplify(self):
         """Simplify all SymPy coefficients."""
         for k in self._dict:
-            self._dict[k] = sp.simplify(self._dict[k])
+            self._dict[k] = simplify(self._dict[k])
 
     @classmethod
     def from_qml(cls, qml_op):
@@ -147,13 +147,13 @@ class PauliDict:
         cls = PauliDict()
 
         # Iterate over the terms (coefficients, observables) and add to sentence
-        for c, w in zip(*qml.ops.op_math.sum(qml_op).terms()):
+        for c, w in zip(*qml_sum(qml_op).terms()):
             cls[PauliOp.from_qml(w)] = c
 
         return cls
 
     # ------------------ Operator Overrides ------------------
-    def add_term(self, key: PauliOp, coeff : sp.Expr):
+    def add_term(self, key: PauliOp, coeff : Expr):
         """Add a term to the PauliDict."""
         self._dict[key] = self._dict.get(key, 0) + coeff
 

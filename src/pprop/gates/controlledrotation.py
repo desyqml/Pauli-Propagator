@@ -3,8 +3,11 @@ This submodule defines the class ControlledRotationGate for all controlled rotat
 """
 from typing import List, Tuple, Union
 
-import pennylane as qml
-import sympy as sp
+from pennylane import CRX as qmlCRX
+from pennylane import CRY as qmlCRY
+from pennylane import CRZ as qmlCRZ
+from sympy import Expr, cos, sin
+from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
 from ..pauli.sentence import PauliDict
@@ -23,7 +26,7 @@ class ControlledRotationGate(Gate):
 
         self.rule = rule  # dictionary defining Pauli Propagation rules
 
-    def evolve(self, word: Tuple[PauliOp, Union[float, sp.Expr]], t: Union[sp.core.symbol.Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
+    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
         """
         Heisenberg evolve a Pauliword through the gate
         
@@ -85,20 +88,20 @@ class CRX(ControlledRotationGate):
     """
     def __init__(self, wires: List[int], parameter_index: int):
         rule = {
-            "IY": [("IY", lambda t: .5*(1 + sp.cos(t))), ("IZ", lambda t: -.5*sp.sin(t)), ("ZY", lambda t: .5*(1 - sp.cos(t))), ("ZZ", lambda t: .5*sp.sin(t))],
-            "IZ": [("IZ", lambda t: .5*(1 + sp.cos(t))), ("IY", lambda t: .5*sp.sin(t)), ("ZZ", lambda t: .5*(1 - sp.cos(t))), ("ZY", lambda t: -.5*sp.sin(t))],
-            "XI": [("XI", lambda t: sp.cos(t/2)), ("YX", lambda t: sp.sin(t/2))],
-            "XX": [("XX", lambda t: sp.cos(t/2)), ("YI", lambda t: sp.sin(t/2))],
-            "XY": [("XY", lambda t: sp.cos(t/2)), ("XZ", lambda t: -sp.sin(t/2))],
-            "XZ": [("XZ", lambda t: sp.cos(t/2)), ("XY", lambda t: sp.sin(t/2))],
-            "YI": [("YI", lambda t: sp.cos(t/2)), ("XX", lambda t: -sp.sin(t/2))],
-            "YX": [("YX", lambda t: sp.cos(t/2)), ("XI", lambda t: -sp.sin(t/2))],
-            "YY": [("YY", lambda t: sp.cos(t/2)), ("YZ", lambda t: -sp.sin(t/2))],
-            "YZ": [("YZ", lambda t: sp.cos(t/2)), ("YY", lambda t: sp.sin(t/2))],
-            "ZY": [("ZY", lambda t: .5*(1 + sp.cos(t))), ("ZZ", lambda t: -.5*sp.sin(t)), ("IY", lambda t: .5*(1 - sp.cos(t))), ("IZ", lambda t: .5*sp.sin(t))],
-            "ZZ": [("ZZ", lambda t: .5*(1 + sp.cos(t))), ("ZY", lambda t: .5*sp.sin(t)), ("IZ", lambda t: .5*(1 - sp.cos(t))), ("IY", lambda t: -.5*sp.sin(t))],
+            "IY": [("IY", lambda t: .5*(1 + cos(t))), ("IZ", lambda t: -.5*sin(t)), ("ZY", lambda t: .5*(1 - cos(t))), ("ZZ", lambda t: .5*sin(t))],
+            "IZ": [("IZ", lambda t: .5*(1 + cos(t))), ("IY", lambda t: .5*sin(t)), ("ZZ", lambda t: .5*(1 - cos(t))), ("ZY", lambda t: -.5*sin(t))],
+            "XI": [("XI", lambda t: cos(t/2)), ("YX", lambda t: sin(t/2))],
+            "XX": [("XX", lambda t: cos(t/2)), ("YI", lambda t: sin(t/2))],
+            "XY": [("XY", lambda t: cos(t/2)), ("XZ", lambda t: -sin(t/2))],
+            "XZ": [("XZ", lambda t: cos(t/2)), ("XY", lambda t: sin(t/2))],
+            "YI": [("YI", lambda t: cos(t/2)), ("XX", lambda t: -sin(t/2))],
+            "YX": [("YX", lambda t: cos(t/2)), ("XI", lambda t: -sin(t/2))],
+            "YY": [("YY", lambda t: cos(t/2)), ("YZ", lambda t: -sin(t/2))],
+            "YZ": [("YZ", lambda t: cos(t/2)), ("YY", lambda t: sin(t/2))],
+            "ZY": [("ZY", lambda t: .5*(1 + cos(t))), ("ZZ", lambda t: -.5*sin(t)), ("IY", lambda t: .5*(1 - cos(t))), ("IZ", lambda t: .5*sin(t))],
+            "ZZ": [("ZZ", lambda t: .5*(1 + cos(t))), ("ZY", lambda t: .5*sin(t)), ("IZ", lambda t: .5*(1 - cos(t))), ("IY", lambda t: -.5*sin(t))],
         }
-        super().__init__(wires, qml.CRX, parameter_index, rule)
+        super().__init__(wires, qmlCRX, parameter_index, rule)
 
 class CRY(ControlledRotationGate):
     r"""The controlled-RY operator
@@ -114,20 +117,20 @@ class CRY(ControlledRotationGate):
     """
     def __init__(self, wires: List[int], parameter_index: int):
         rule = {
-            "IX": [("IX", lambda t: .5*(1 + sp.cos(t))), ("IZ", lambda t: .5*sp.sin(t)), ("ZX", lambda t: .5*(1 - sp.cos(t))), ("ZZ", lambda t: -.5*sp.sin(t))],
-            "IZ": [("IZ", lambda t: .5*(1 + sp.cos(t))), ("IX", lambda t: -.5*sp.sin(t)), ("ZZ", lambda t: .5*(1 - sp.cos(t))), ("ZX", lambda t: .5*sp.sin(t))],
-            "XI": [("XI", lambda t: sp.cos(t/2)), ("YY", lambda t: sp.sin(t/2))],
-            "XX": [("XX", lambda t: sp.cos(t/2)), ("XZ", lambda t: sp.sin(t/2))],
-            "XY": [("XY", lambda t: sp.cos(t/2)), ("YI", lambda t: sp.sin(t/2))],
-            "XZ": [("XZ", lambda t: sp.cos(t/2)), ("XX", lambda t: -sp.sin(t/2))],
-            "YI": [("YI", lambda t: sp.cos(t/2)), ("XY", lambda t: -sp.sin(t/2))],
-            "YX": [("YX", lambda t: sp.cos(t/2)), ("YZ", lambda t: sp.sin(t/2))],
-            "YY": [("YY", lambda t: sp.cos(t/2)), ("XI", lambda t: -sp.sin(t/2))],
-            "YZ": [("YZ", lambda t: sp.cos(t/2)), ("YX", lambda t: -sp.sin(t/2))],
-            "ZX": [("ZX", lambda t: .5*(1 + sp.cos(t))), ("ZZ", lambda t: .5*sp.sin(t)), ("IX", lambda t: .5*(1 - sp.cos(t))), ("IZ", lambda t: -.5*sp.sin(t))],
-            "ZZ": [("ZZ", lambda t: .5*(1 + sp.cos(t))), ("ZX", lambda t: -.5*sp.sin(t)), ("IZ", lambda t: .5*(1 - sp.cos(t))), ("IX", lambda t: .5*sp.sin(t))],
+            "IX": [("IX", lambda t: .5*(1 + cos(t))), ("IZ", lambda t: .5*sin(t)), ("ZX", lambda t: .5*(1 - cos(t))), ("ZZ", lambda t: -.5*sin(t))],
+            "IZ": [("IZ", lambda t: .5*(1 + cos(t))), ("IX", lambda t: -.5*sin(t)), ("ZZ", lambda t: .5*(1 - cos(t))), ("ZX", lambda t: .5*sin(t))],
+            "XI": [("XI", lambda t: cos(t/2)), ("YY", lambda t: sin(t/2))],
+            "XX": [("XX", lambda t: cos(t/2)), ("XZ", lambda t: sin(t/2))],
+            "XY": [("XY", lambda t: cos(t/2)), ("YI", lambda t: sin(t/2))],
+            "XZ": [("XZ", lambda t: cos(t/2)), ("XX", lambda t: -sin(t/2))],
+            "YI": [("YI", lambda t: cos(t/2)), ("XY", lambda t: -sin(t/2))],
+            "YX": [("YX", lambda t: cos(t/2)), ("YZ", lambda t: sin(t/2))],
+            "YY": [("YY", lambda t: cos(t/2)), ("XI", lambda t: -sin(t/2))],
+            "YZ": [("YZ", lambda t: cos(t/2)), ("YX", lambda t: -sin(t/2))],
+            "ZX": [("ZX", lambda t: .5*(1 + cos(t))), ("ZZ", lambda t: .5*sin(t)), ("IX", lambda t: .5*(1 - cos(t))), ("IZ", lambda t: -.5*sin(t))],
+            "ZZ": [("ZZ", lambda t: .5*(1 + cos(t))), ("ZX", lambda t: -.5*sin(t)), ("IZ", lambda t: .5*(1 - cos(t))), ("IX", lambda t: .5*sin(t))],
         }
-        super().__init__(wires, qml.CRY, parameter_index, rule)
+        super().__init__(wires, qmlCRY, parameter_index, rule)
 
 class CRZ(ControlledRotationGate):
     r"""The controlled-RZ operator
@@ -143,17 +146,17 @@ class CRZ(ControlledRotationGate):
     """
     def __init__(self, wires: List[int], parameter_index: int):
         rule = {
-            "IX": [("IX", lambda t: sp.cos(t/2)**2), ("IY", lambda t: -.5*sp.sin(t)), ("ZX", lambda t: sp.sin(t/2)**2), ("ZY", lambda t: .5*sp.sin(t))],
-            "IY": [("IY", lambda t: sp.cos(t/2)**2), ("IX", lambda t: .5*sp.sin(t)), ("ZY", lambda t: sp.sin(t/2)**2), ("ZX", lambda t: -.5*sp.sin(t))],
-            "XI": [("XI", lambda t: sp.cos(t/2)), ("YZ", lambda t: sp.sin(t/2))],
-            "XX": [("XX", lambda t: sp.cos(t/2)), ("XY", lambda t: -sp.sin(t/2))],
-            "XY": [("XY", lambda t: sp.cos(t/2)), ("XX", lambda t: sp.sin(t/2))],
-            "XZ": [("XZ", lambda t: sp.cos(t/2)), ("YI", lambda t: sp.sin(t/2))],
-            "YI": [("YI", lambda t: sp.cos(t/2)), ("XZ", lambda t: -sp.sin(t/2))],
-            "YX": [("YX", lambda t: sp.cos(t/2)), ("YY", lambda t: -sp.sin(t/2))],
-            "YY": [("YY", lambda t: sp.cos(t/2)), ("YX", lambda t: sp.sin(t/2))],
-            "YZ": [("YZ", lambda t: sp.cos(t/2)), ("XI", lambda t: -sp.sin(t/2))],
-            "ZX": [("ZX", lambda t: sp.cos(t/2)**2), ("ZY", lambda t: -.5*sp.sin(t)), ("IX", lambda t: sp.sin(t/2)**2), ("IY", lambda t: .5*sp.sin(t))],
-            "ZY": [("ZY", lambda t: sp.cos(t/2)**2), ("ZX", lambda t: .5*sp.sin(t)), ("IY", lambda t: sp.sin(t/2)**2), ("IX", lambda t: -.5*sp.sin(t))],
+            "IX": [("IX", lambda t: cos(t/2)**2), ("IY", lambda t: -.5*sin(t)), ("ZX", lambda t: sin(t/2)**2), ("ZY", lambda t: .5*sin(t))],
+            "IY": [("IY", lambda t: cos(t/2)**2), ("IX", lambda t: .5*sin(t)), ("ZY", lambda t: sin(t/2)**2), ("ZX", lambda t: -.5*sin(t))],
+            "XI": [("XI", lambda t: cos(t/2)), ("YZ", lambda t: sin(t/2))],
+            "XX": [("XX", lambda t: cos(t/2)), ("XY", lambda t: -sin(t/2))],
+            "XY": [("XY", lambda t: cos(t/2)), ("XX", lambda t: sin(t/2))],
+            "XZ": [("XZ", lambda t: cos(t/2)), ("YI", lambda t: sin(t/2))],
+            "YI": [("YI", lambda t: cos(t/2)), ("XZ", lambda t: -sin(t/2))],
+            "YX": [("YX", lambda t: cos(t/2)), ("YY", lambda t: -sin(t/2))],
+            "YY": [("YY", lambda t: cos(t/2)), ("YX", lambda t: sin(t/2))],
+            "YZ": [("YZ", lambda t: cos(t/2)), ("XI", lambda t: -sin(t/2))],
+            "ZX": [("ZX", lambda t: cos(t/2)**2), ("ZY", lambda t: -.5*sin(t)), ("IX", lambda t: sin(t/2)**2), ("IY", lambda t: .5*sin(t))],
+            "ZY": [("ZY", lambda t: cos(t/2)**2), ("ZX", lambda t: .5*sin(t)), ("IY", lambda t: sin(t/2)**2), ("IX", lambda t: -.5*sin(t))],
         }
-        super().__init__(wires, qml.CRZ, parameter_index, rule)
+        super().__init__(wires, qmlCRZ, parameter_index, rule)
