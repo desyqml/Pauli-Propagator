@@ -99,7 +99,7 @@ pip install -e .
 
 For detailed examples, please refer to the `notebooks` directory, which contains Jupyter notebooks that demonstrate various use cases and tests of the propagator.
 
-# Citation
+## Citation
 If you use this software in your research or publications, **please cite** the following: 
 
 ```
