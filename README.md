@@ -122,3 +122,10 @@ If you use this software in your research or publications, **please cite** the f
                   },
 }
 ```
+
+## TODO
+
+- Figure out JIT compilation of the functions
+- Implement `eval_and_grad` and the training method
+- Optimize propagation through preventive prunings
+- Add more tutorials (VQE, generation, compression)
