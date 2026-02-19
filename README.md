@@ -103,22 +103,23 @@ For detailed examples, please refer to the `notebooks` directory, which contains
 If you use this software in your research or publications, **please cite** the following: 
 
 ```
-@software{monaco_2025_17989023,
+@software{monaco_2026_18698922,
   author       = {Monaco, Saverio and
                   Slim, Jamal and
                   Krücker, Dirk and
                   Borras, Kerstin},
   title        = {Pauli-Propagator},
-  month        = dec,
-  year         = 2025,
+  month        = feb,
+  year         = 2026,
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.17989023},
-  url          = {https://doi.org/10.5281/zenodo.17989023},
-  swhid        = {swh:1:dir:1284be865198eb2a387c47e0b37276dbb507dda0
+  version      = {v2.0.0},
+  doi          = {10.5281/zenodo.18698922},
+  url          = {https://doi.org/10.5281/zenodo.18698922},
+  swhid        = {swh:1:dir:026dd224bb89ab9621c3cd71e4b40b35893daec9
                    ;origin=https://doi.org/10.5281/zenodo.16028009;vi
-                   sit=swh:1:snp:622f5e838c4a4d45bf85f4f0b08e9f916707
-                   f133;anchor=swh:1:rel:17df8835b58b83156406bcf18d0d
-                   2622b4ac0b92;path=Pauli-Propagator-1.0.1
+                   sit=swh:1:snp:bd930acf4a272c46ad4c03fe5c2be479bf6f
+                   a062;anchor=swh:1:rel:373751cc26e9c1690da10b184a2e
+                   cc753ee21f1e;path=desyqml-Pauli-Propagator-a1192ad
                   },
 }
 ```
