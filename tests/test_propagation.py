@@ -1,62 +1,77 @@
 # %%
+
+from pprop import Propagator #noqa
 import pennylane as qml
+import random
+import numpy as np
 
-from pprop import gates
+num_qubits = 3
 
+# Single qubit no param gates
+sqnp_gates = [qml.H, qml.S, qml.T]
 
-def get_type(gate_str):
-    return getattr(gates, gate_str).__module__.split(".")[-1]
+# Single qubit param gates
+sqp_gates = [qml.RX, qml.RY, qml.RZ]
 
-paulis_str = ["X", "Y", "Z", "Identity"]
+# Two qubits no param gates
+tqnp_gates = [qml.CNOT, qml.CY, qml.CZ]
 
-# %%
-def test_commutativity():
-    for gate_str in gates.__all__:
-        gate_type = get_type(gate_str)
-        print("Testing", gate_str, f"({gate_type})")
-        
-        if gate_type in ["simpleclifford", "simplenonclifford"]:
-            gate = getattr(gates, gate_str)(wires=[0], parameter_index=None)
-        elif gate_type == "rotation":
-            gate = getattr(gates, gate_str)(wires=[0], parameter_index=1)
-        elif gate_type == "controlled":
-            gate = getattr(gates, gate_str)(wires=[0,1], parameter_index=None)
-        else:
-            raise Exception(f"Unknown gate type: {gate_type}")
-        
-        if gate_type in ["simpleclifford", "simplenonclifford", "rotation"]:
-            for pauli in paulis_str:
-                commutes1 = qml.is_commuting(gate.qml_gate, getattr(qml, pauli)(0))
-                commutes2 = pauli not in gate.rule.keys()
-                if commutes1 != commutes2:
-                    print(f"Check commutativity for {pauli} and {gate_str}")
-                    print(f"qml: {commutes1}")
-                    print(f"rule: {commutes2}")
-
-        elif gate_type in ["controlled"]:
-            for pauli1 in paulis_str:
-                for pauli2 in paulis_str:
-                    print(pauli1, pauli2)
-                    prod = getattr(qml, pauli1)(0) @ getattr(qml, pauli2)(1)
-                    print(prod, gate.qml_gate)
-                    commutes1 = qml.is_commuting(gate.qml_gate, prod)
-                    commutes2 = (pauli1, pauli2) not in gate.rule.keys()
-                    if commutes1 != commutes2:
-                        print(f"Check commutativity for {pauli1}{pauli2} and {gate_str}")
-                        print(f"qml: {commutes1}")
-                        print(f"rule: {commutes2}")
-        else:
-            raise Exception(f"Unknown gate type: {gate_type}")
-
-
+# Two qubits param gates
+tqp_gates = [qml.CRX, qml.CRY, qml.CRZ]
                 
 # %%
-test_commutativity()
-# %%
+def get_random_ansatz():
+    # Build the circuit structure once, at definition time
+    layers = []
+    for _ in range(5):
+        single_gates = []
+        for qubit in range(num_qubits):
+            gate = random.choice(sqnp_gates + sqp_gates)
+            single_gates.append((gate, qubit))
+        gate = random.choice(tqnp_gates + tqp_gates)
+        q0, q1 = random.sample(range(num_qubits), 2)
+        layers.append((single_gates, (gate, q0, q1)))
 
-op1 = qml.CNOT(wires=[0, 1])
-op2 = qml.PauliX(0) @ qml.PauliX(1)
-qml.is_commuting(op1, op2)  # works if both are Operation objects
+    def ansatz(params):
+        param_idx = 0
+        for single_gates, (tq_gate, q0, q1) in layers:
+            for gate, qubit in single_gates:
+                if gate in sqp_gates:
+                    gate(params[param_idx], wires=qubit)
+                    param_idx += 1
+                else:
+                    gate(wires=qubit)
+            if tq_gate in tqp_gates:
+                tq_gate(params[param_idx], wires=[q0, q1])
+                param_idx += 1
+            else:
+                tq_gate(wires=[q0, q1])
+
+        return [
+            qml.expval(qml.PauliZ(0)),
+            qml.expval(qml.PauliX(0) @ qml.PauliY(1) @ qml.PauliZ(2)),
+            qml.expval(13*qml.PauliZ(2) + qml.PauliZ(0) @ qml.PauliX(1))
+        ]
+
+    return ansatz
+
 # %%
-op3 = qml.ops.op_math.sum(op2)
-qml.is_commuting(op1, op3)  # works if both are Operation objects
+def test_propagation():
+    device = qml.device("default.qubit", wires=num_qubits)
+    for a in range(3):
+        ansatz = get_random_ansatz()
+        qnode = qml.QNode(ansatz, device)
+
+        propagator = Propagator(ansatz)
+        propagator.propagate()
+
+        for _ in range(5):
+            random_params = qml.numpy.random.uniform(-np.pi, np.pi, propagator.num_params)
+            prop_output = propagator(random_params)
+            qml_output = qnode(random_params)
+
+            assert np.allclose(prop_output, qml_output, atol=1e-6), (
+                f"Mismatch:\nprop:  {prop_output}\nqml:   {qml_output}"
+            )
+# %%
+test_propagation()
