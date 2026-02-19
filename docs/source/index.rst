@@ -11,8 +11,8 @@ Pauli-Propagator
    getting_started/installation
    getting_started/citation
    
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.17989023.svg
-   :target: https://doi.org/10.5281/zenodo.17989023
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.18698922.svg
+   :target: https://doi.org/10.5281/zenodo.18698922
    :alt: DOI
    
 .. include:: getting_started/overview.rst
