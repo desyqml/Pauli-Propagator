@@ -17,6 +17,7 @@ In submodules:
 """
 
 from .controlled import CNOT, CY, CZ
+from .controlledrotation import CRX, CRY, CRZ
 from .rotation import RX, RY, RZ
 from .simpleclifford import H, Hadamard, S
 from .simplenonclifford import T
@@ -32,5 +33,8 @@ __all__ = [
     "CNOT",
     "CY",
     "CZ",
+    "CRX",
+    "CRY",
+    "CRZ",
 ]
 

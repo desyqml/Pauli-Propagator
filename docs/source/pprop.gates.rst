@@ -9,6 +9,7 @@ Submodules
 
    pprop.gates.base
    pprop.gates.controlled
+   pprop.gates.controlledrotation
    pprop.gates.rotation
    pprop.gates.simpleclifford
    pprop.gates.simplenonclifford
