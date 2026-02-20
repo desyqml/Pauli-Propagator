@@ -1,94 +1,115 @@
 """
-This module handles the core evolution of Pauli Words through a list of gates
+This module handles the core evolution of Pauli words through a list of gates
+via the Heisenberg picture.
 """
-from typing import Tuple, Union
+from typing import List, Optional, Tuple
 
-from sympy import Expr
-from sympy.core.symbol import Symbol
-
-from pprop.pauli.sentence import PauliDict
+from ..gates.base import Gate
+from ..pauli.sentence import CoeffTerms, PauliDict
 
 
-def to_expectation(paulidict: PauliDict):
+def to_expectation(paulidict: PauliDict) -> CoeffTerms:
     r"""
-    Convert a PauliDict to an expectation value.
+    Extract the expectation value expression from a propagated :class:`~pprop.pauli.sentence.PauliDict`.
 
-    Given the propagated Pauli Dict, consider only the coefficients
-    of Pauli Words with either Z or I on all qubits.
-    
-    Any other Pauli Words have 0 as expectation:
-    
-    .. math:: \langle 0 | X | 0 \rangle = 0
-    .. math:: \langle 0 | Y | 0 \rangle = 0
-    .. math:: \langle 0 | Z | 0 \rangle = 1
-    .. math:: \langle 0 | I | 0 \rangle = 1
+    In the :math:`|0\rangle^{\otimes n}` computational basis state, only Pauli words
+    composed entirely of :math:`Z` and :math:`I` operators have non-zero expectation:
+
+    .. math::
+
+        \langle 0 | I | 0 \rangle = 1, \quad
+        \langle 0 | Z | 0 \rangle = 1, \quad
+        \langle 0 | X | 0 \rangle = 0, \quad
+        \langle 0 | Y | 0 \rangle = 0
+
+    This function iterates over all Pauli words in ``paulidict``, keeps only
+    those that satisfy the zero-bracket condition (i.e. only :math:`Z`/:math:`I`
+    on every qubit), and concatenates their :data:`CoeffTerms` into a single
+    flat list representing the full expectation value expression.
 
     Parameters
     ----------
     paulidict : PauliDict
-        Dictionary mapping PauliOp -> SymPy coefficient
+        Mapping of ``PauliOp -> CoeffTerms`` after Heisenberg evolution.
 
     Returns
     -------
-    sp.Expr
-        The expectation value of the Pauliwords in the dictionary.
+    CoeffTerms
+        Flat list of :data:`CoeffTerm` tuples whose sum gives the expectation
+        value :math:`\langle 0 | O | 0 \rangle`.
     """
-    expr = 0
-    for pauliword, coeff in paulidict.items():
+    expr: CoeffTerms = []
+    for pauliword, coeffterms in paulidict.items():
+        # Only Z and I operators have non-zero expectation in the |0⟩ state.
         if pauliword.zerobracket():
-            expr += coeff
+            expr += coeffterms  # coeffterms is a CoeffTerms (list), so += extends the list
     return expr
 
-def heisenberg(gates, paulidict: PauliDict, theta: Tuple[Symbol, ...], k1: Union[int, None], k2: Union[int, None], debug: bool) -> Tuple[PauliDict, Expr]:
-    """
-    Heisenberg evolve a Pauliword through a list of gates
+
+def heisenberg(
+    gates : List[Gate],
+    paulidict: PauliDict,
+    k1: Optional[int],
+    k2: Optional[int],
+    debug: bool = False,
+) -> Tuple[PauliDict, CoeffTerms]:
+    r"""
+    Evolve a :class:`~pprop.pauli.sentence.PauliDict` backwards through a list of gates
+    (Heisenberg picture).
+
+    Each gate is applied in *reverse* order so that the observable is propagated
+    from the measurement end of the circuit back to the input. After all gates
+    have been applied, :func:`to_expectation` extracts the symbolic expectation
+    value expression as a :data:`CoeffTerms` list.
 
     Parameters
     ----------
-    gates : List[Gate]
-        List of gates to evolve through
+    gates : list[pprop.gates.Gate]
+        Ordered list of gates as they appear in the circuit (will be iterated
+        in reverse).
     paulidict : PauliDict
-        Pauliword + coefficient to be evolved
-    theta : Tuple[sp.core.symbol.Symbol, ...]
-        Gate parameters
-    k1 : Union[int, None]
-        Pauli weight cutoff
-    k2 : Union[int, None]
-        Pauli frequency cutoff
-    debug : bool
-        Print debug information
+        Initial observable represented as a mapping of ``PauliOp -> CoeffTerms``.
+    k1 : int or None
+        Pauli weight cutoff. Evolved terms whose Pauli weight exceeds ``k1``
+        are discarded. ``None`` disables this truncation.
+    k2 : int or None
+        Frequency cutoff. Evolved terms whose total trigonometric frequency
+        exceeds ``k2`` are discarded. ``None`` disables this truncation.
+    debug : bool, optional
+        If ``True``, print the gate, pre-evolution, and post-evolution state at
+        each step. Defaults to ``False``.
 
     Returns
     -------
-    PauliDict
-        Evolved Pauliwords (as PauliDict)
-    sp.Expr
-        The expectation value expression of the Pauliwords in the dictionary.
+    paulidict : PauliDict
+        The fully evolved observable after all gates have been applied.
+    expectation : CoeffTerms
+        Flat list of :data:`CoeffTerm` tuples encoding the symbolic expectation
+        value :math:`\langle 0 | U^\dagger O U | 0 \rangle`.
     """
     for gate in reversed(gates):
-        pauli_add = PauliDict() # Pauli word to add
-        pauli_remove = PauliDict() # Pauli words to remove
+        pauli_add    = PauliDict()  # Evolved replacement terms to add
+        pauli_remove = PauliDict()  # Original terms to remove after evolution
 
-        for pauliword in paulidict.items():
-            t = theta[gate.parameter_index] if gate.parameter_index is not None else None
+        for pauliword, coeffterms in paulidict.items():
+            # Evolve this (pauliword, coeffterms) pair through the gate.
+            evolved: PauliDict = gate.evolve((pauliword, coeffterms), k1, k2)
 
-            # Evolve pauliword to evolved
-            evolved = gate.evolve(pauliword, t, k1, k2)
-            
-            # Keep track of changes
-            pauli_add += evolved
-            pauli_remove[pauliword[0]] = 1 # We only care about the PauliOp, not the coefficient
+            pauli_add    += evolved
+            # Only the key (PauliOp) matters here; the coefficient is irrelevant
+            # because we are removing the entire entry from paulidict.
+            pauli_remove[pauliword] = []
 
-        if debug:    
+        if debug:
             print("=== Evolve ===")
             print("GATE:", gate)
-            print("PRE:", paulidict)
+            print(" PRE:", paulidict)
 
-        # Apply changes
+        # Swap out the original terms for their evolved counterparts.
         paulidict -= pauli_remove
         paulidict += pauli_add
 
-        if debug:    
+        if debug:
             print("  REM:", pauli_remove)
             print("  ADD:", pauli_add)
             print("POST:", paulidict)

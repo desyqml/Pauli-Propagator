@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    pprop.gates
+   pprop.optimization
    pprop.pauli
    pprop.propagator
 

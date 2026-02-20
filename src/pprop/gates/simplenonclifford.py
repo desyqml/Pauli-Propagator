@@ -1,88 +1,142 @@
 """
-This submodule defines the class SimpleNonClifford for all single-qubit non-clifford (non-parametrized) gates and the gate T
+This submodule defines :class:`SimpleNonClifford`, the base class for
+single-qubit non-parametrised non-Clifford gates, and the concrete gate
+:class:`T`.
 """
 from math import sqrt
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 from pennylane import T as qmlT
-from sympy import Expr
-from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
-from ..pauli.sentence import PauliDict
+from ..pauli.sentence import CoeffTerms, PauliDict
 from .base import Gate
+
+# Rule type: maps a single-qubit Pauli label to two (output_label, phase) pairs.
+# e.g. "X" -> (("X", +1/√2), ("Y", -1/√2))
+EvolutionRule = Dict[str, Tuple[Tuple[str, float], Tuple[str, float]]]
 
 
 class SimpleNonClifford(Gate):
     """
-    Base class for single-qubit non-clifford (non-parametrized) gates.
-    """
+    Base class for single-qubit non-parametrised non-Clifford gates.
 
-    def __init__(self, wires, qml_gate, parameter_index, rule):
-        super().__init__(wires=wires, qml_gate=qml_gate,
-                         parameter_index=parameter_index)
-
-        self.rule = rule  # dictionary defining Pauli propagation rule
-
-    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
-        """
-        Heisenberg evolve a Pauliword through the gate
-        
-        Parameters
-        ----------
-        word : Tuple[PauliOp, Union[float, sp.Expr]]
-            Pauliword + coefficient to be evolved
-        t : Union[sp.core.symbol.Symbol, None]
-            Gate parameter (not used here as these gates do not have parameters)
-        k1 : Union[int, None]
-            Weight cutoff (not used here as these gates do not increase weights)
-        k2 : Union[int, None]
-            Frequency cutoff (not used here as these gates do not increase frequencies)
-            
-        Returns
-        -------
-        PauliDict
-            Evolved Pauliwords (as PauliDict)
-        """
-        op, coeff = word  # unpack once
-
-        wire = self.wires[0]
-        
-        # Get the evolution rule for the word
-        rule = self.rule.get(op[wire], None)
-        
-        # iff the word commutes with the gate
-        if rule is None:
-            return PauliDict({op: coeff})
-
-        (basis1, phase1), (basis2, phase2) = rule
-
-        # copy to avoid mutating original
-        new_op1 = op.copy()
-        new_op1.set(wire, basis1)
-        new_op2 = op.copy()
-        new_op2.set(wire, basis2)
-
-        return PauliDict({new_op1: phase1 * coeff, new_op2: phase2 * coeff})
-
-class T(SimpleNonClifford):
-    r"""
-    The single-qubit T gate
-
-    .. math:: T = \begin{bmatrix} 1 & 0 \\ 0 & e^{\frac{i\pi}{4}} \end{bmatrix}.
+    Unlike Clifford gates, which map every Pauli word to a single Pauli word,
+    non-Clifford gates map one Pauli word to a *superposition* of two Pauli
+    words with constant float coefficients. The specific mapping is defined
+    by a ``rule`` dict supplied by each subclass.
 
     Parameters
     ----------
-    wires : List[int]
-        The qubits this gate acts on.
-    parameter_index : int
-        Index of the parameter this gate uses.
+    wires : list[int]
+        Qubits on which the gate acts (single-qubit gate, so one wire).
+    qml_gate : pennylane.operation.Operator
+        Corresponding PennyLane gate class, used for circuit drawing.
+    parameter_index : int or None
+        Index into the parameter vector. Non-Clifford gates are
+        non-parametrised, so this is always ``None``.
+    rule : EvolutionRule
+        Dict mapping a single-qubit Pauli label (``"X"``, ``"Y"``, or
+        ``"Z"``) to a pair of ``(output_label, phase)`` tuples describing
+        the Heisenberg evolution of that Pauli through the gate. Labels
+        absent from the dict commute with the gate and pass through unchanged.
+
+    Attributes
+    ----------
+    rule : EvolutionRule
+        The Heisenberg evolution rule for this gate.
     """
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None):
-        # Tranformation rule of the T Gate
-        rule = {
-            "X": (("X", +1/sqrt(2)), ("Y", -1/sqrt(2))),
-            "Y": (("Y", +1/sqrt(2)), ("X", +1/sqrt(2))),
+
+    def __init__(
+        self,
+        wires,
+        qml_gate,
+        parameter_index,
+        rule: EvolutionRule,
+    ) -> None:
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        self.rule = rule
+
+    def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
+        """
+        Heisenberg-evolve a Pauli word through this non-Clifford gate.
+
+        Looks up the single-qubit Pauli at the gate's wire in ``self.rule``.
+        If no rule exists for that label the Pauli word commutes with the gate
+        and is returned unchanged. Otherwise the word is split into two new
+        Pauli words whose scalar coefficients are scaled by the corresponding
+        constant phases.
+
+        Parameters
+        ----------
+        word : tuple[PauliOp, CoeffTerms]
+            ``(pauliop, coeff_terms)`` pair to evolve.
+        k1 : int or None
+            Pauli weight cutoff (unused — non-Clifford gates do not change weight).
+        k2 : int or None
+            Frequency cutoff (unused — non-Clifford gates do not change frequency).
+
+        Returns
+        -------
+        PauliDict
+            A :class:`~pprop.pauli.sentence.PauliDict` with either one entry
+            (if the word commutes with the gate) or two entries (if it does not).
+        """
+        op, coeff_terms = word
+        wire = self.wires[0]
+        rule = self.rule.get(op[wire], None)
+
+        # If no rule exists this Pauli commutes with the gate — pass through unchanged.
+        if rule is None:
+            return PauliDict({op: coeff_terms})
+
+        (basis1, phase1), (basis2, phase2) = rule
+
+        # Build the two output Pauli words by updating the qubit at `wire`.
+        new_op1 = op.copy()
+        new_op1.set(wire, basis1)
+
+        new_op2 = op.copy()
+        new_op2.set(wire, basis2)
+
+        # Scale every existing CoeffTerm by the constant phase factor.
+        # sin/cos index lists are copied to avoid mutating the original.
+        scaled1: CoeffTerms = [(phase1 * c, list(s), list(cc)) for c, s, cc in coeff_terms]
+        scaled2: CoeffTerms = [(phase2 * c, list(s), list(cc)) for c, s, cc in coeff_terms]
+
+        return PauliDict({new_op1: scaled1, new_op2: scaled2})
+
+
+class T(SimpleNonClifford):
+    r"""
+    The single-qubit T gate.
+
+    .. math::
+
+        T = \begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix}
+
+    The Heisenberg evolution rules are:
+
+    .. math::
+
+        X \;\mapsto\; \tfrac{1}{\sqrt{2}} X - \tfrac{1}{\sqrt{2}} Y
+
+        Y \;\mapsto\; \tfrac{1}{\sqrt{2}} Y + \tfrac{1}{\sqrt{2}} X
+
+        Z \;\mapsto\; Z
+
+    Parameters
+    ----------
+    wires : list[int]
+        Qubit on which the gate acts.
+    parameter_index : int, optional
+        Unused for non-parametrised gates. Defaults to ``None``.
+    """
+
+    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+        rule: EvolutionRule = {
+            "X": (("X", +1 / sqrt(2)), ("Y", -1 / sqrt(2))),
+            "Y": (("Y", +1 / sqrt(2)), ("X", +1 / sqrt(2))),
+            # Z commutes with T — no rule needed, handled by the base class fallthrough.
         }
         super().__init__(wires, qmlT, parameter_index, rule)
-

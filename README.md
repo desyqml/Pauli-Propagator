@@ -78,13 +78,10 @@ prop_output = prop(random_params)
 [ 0.32448205 -0.52806187  0.          4.1604633 ]
 ```
 
-* You can inspect the explicit functions using `.exprs`
+* You can inspect the explicit functions using `.expression()`
 ```
->>> prop.exprs
-[-1.0*sin(θ2)*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1) + 1.0*cos(θ0)*cos(θ2)*cos(θ4),
- -1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) + 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) + 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) + 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6),
- 0,
- 1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) - 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) - 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) - 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6) - 13.0*sin(θ6)]
+>>> prop.expression(0)
+-1.0*sin(θ2)*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1) + 1.0*cos(θ0)*cos(θ2)*cos(θ4)
 ```
 
 ## Installation
@@ -126,7 +123,5 @@ If you use this software in your research or publications, **please cite** the f
 
 ## TODO
 
-- Figure out JIT compilation of the functions
-- Implement `eval_and_grad` and the training method
 - Optimize propagation through preventive prunings
-- Add more tutorials (VQE, generation, compression)
+- Add more tutorials (generation, compression)

@@ -1,6 +1,6 @@
 [project]
 name = "Pauli-Propagation"
-version = "2.0.0"
+version = "2.0.1"
 authors = [{ name = "Saverio Monaco", email = "saverio.monaco@desy.de" }]
 description = "A Pennylane-based toolkit for approximate symbolic Pauli propagation and evaluation of quantum circuit observables."
 readme = "README.md"
@@ -15,6 +15,7 @@ dependencies = [
     "numba==0.62.0",
     "jax==0.5.0",
     "jaxlib==0.5.0",
+    "optax==0.2.4",
 ]
 
 [tool.mypy]

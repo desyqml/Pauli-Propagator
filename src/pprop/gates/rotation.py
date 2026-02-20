@@ -1,131 +1,237 @@
 """
-This submodule defines the class RotationGate for all the single-qubit parametrized gates, and the gates RX, RY, and RZ.
+This submodule defines :class:`RotationGate`, the base class for single-qubit
+parametrised Pauli rotation gates, and the concrete gates :class:`RX`,
+:class:`RY`, and :class:`RZ`.
 """
-
-from typing import Tuple, Union
+from typing import Dict, List, Tuple
 
 from pennylane import RX as qmlRX
 from pennylane import RY as qmlRY
 from pennylane import RZ as qmlRZ
-from sympy import Expr, cos, sin
-from sympy.core.symbol import Symbol
 
 from ..pauli.op import PauliOp
-from ..pauli.sentence import PauliDict
+from ..pauli.sentence import CoeffTerms, PauliDict
 from .base import Gate
 from .utils import get_frequency
+
+# Rule type: maps a single-qubit Pauli label to (output_label, sign).
+# Absent labels commute with the rotation axis and pass through unchanged.
+EvolutionRule = Dict[str, Tuple[str, int]]
 
 
 class RotationGate(Gate):
     """
-    Base class for single-qubit Pauli rotations.
-    """
+    Base class for single-qubit parametrised Pauli rotation gates.
 
-    def __init__(self, wires, qml_gate, parameter_index, rule):
-        super().__init__(wires=wires, qml_gate=qml_gate,
-                         parameter_index=parameter_index)
+    A rotation gate :math:`R_P(\\theta) = e^{-i\\theta P/2}` conjugates a
+    Pauli word :math:`Q` according to:
 
-        self.rule = rule  # dictionary defining Pauli Propagation rule
+    .. math::
 
-    def evolve(self, word: Tuple[PauliOp, Union[float, Expr]], t: Union[Symbol, None], k1: Union[int, None], k2: Union[int, None]) -> PauliDict:
-        """
-        Heisenberg evolve a Pauliword through the gate
-        
-        Parameters
-        ----------
-        word : Tuple[PauliOp, Union[float, sp.Expr]]
-            Pauliword + coefficient to be evolved
-        t : Union[sp.core.symbol.Symbol, None]
-            Gate parameter
-        k1 : Union[int, None]
-            Weight cutoff (not used here as these gates do not increase weights)
-        k2 : Union[int, None]
-            Frequency cutoff 
-            
-        Returns
-        -------
-        PauliDict
-            Evolved Pauliword (as PauliDict)
-        """
-        op, coeff = word
+        R_P^\\dagger\\, Q\\, R_P =
+        \\begin{cases}
+            Q & \\text{if } [Q, P] = 0 \\\\
+            \\cos(\\theta)\\, Q + \\sigma \\sin(\\theta)\\, Q'
+              & \\text{if } \\{Q, P\\} = 0
+        \\end{cases}
 
-        wire = self.wires[0]
-        pauli = op[wire]
-
-        # Get the evolution rule for the word
-        rule = self.rule.get(pauli, None)
-
-        # iff the word commutes with the gate
-        if rule is None:
-            return PauliDict({op: coeff})
-        
-        # iff the evolved word would increase the frequency
-        # over the cutoff
-        if k2 is not None and get_frequency(coeff) >= k2:
-            return PauliDict()
-
-        new_op = op.copy()
-        new_op.set(wire, rule[0])
-        
-        return PauliDict({op: cos(t) * coeff, new_op: rule[1] * sin(t) * coeff})
-
-class RX(RotationGate):
-    r"""
-    The single qubit parametrized X rotation
-
-    .. math:: R_x(\phi) = e^{-i\phi\sigma_x/2} = \begin{bmatrix} \cos(\phi/2) & -i\sin(\phi/2) \\ -i\sin(\phi/2) & \cos(\phi/2) \end{bmatrix}.
+    where :math:`Q'` is the Pauli obtained by applying the gate rule and
+    :math:`\\sigma \\in \\{+1, -1\\}` is the sign given by the commutation
+    relation. The trigonometric factors are encoded by appending the parameter
+    index to the ``cos_idx`` or ``sin_idx`` lists of each :data:`CoeffTerm`.
 
     Parameters
     ----------
-    wires : List[int]
-        The qubits this gate acts on.
+    wires : list[int]
+        Qubit on which the gate acts.
+    qml_gate : pennylane.operation.Operator
+        Corresponding PennyLane gate class, used for circuit drawing.
     parameter_index : int
-        Index of the parameter this gate uses.
+        Index of :math:`\\theta` in the global parameter vector.
+    rule : EvolutionRule
+        Dict mapping a single-qubit Pauli label (``"X"``, ``"Y"``, or ``"Z"``)
+        to a ``(output_label, sign)`` tuple for Paulis that anti-commute with
+        the rotation axis. Labels absent from the dict commute and pass through
+        unchanged.
+
+    Attributes
+    ----------
+    rule : EvolutionRule
+        The Heisenberg evolution rule for this gate.
     """
-    def __init__(self, wires, parameter_index):
-        rule = {
+
+    def __init__(
+        self,
+        wires,
+        qml_gate,
+        parameter_index,
+        rule: EvolutionRule,
+    ) -> None:
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        self.rule = rule
+
+    def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
+        """
+        Heisenberg-evolve a Pauli word through this rotation gate.
+
+        For a Pauli :math:`Q` that anti-commutes with the rotation axis, the
+        evolution produces two branches:
+
+        .. math::
+
+            Q \\;\\mapsto\\; \\cos(\\theta)\\, Q \\;+\\; \\sigma\\sin(\\theta)\\, Q'
+
+        Each branch is implemented by appending the gate's ``parameter_index``
+        to the ``cos_idx`` (cosine branch, same Pauli) or ``sin_idx`` (sine
+        branch, new Pauli) of every existing :data:`CoeffTerm`.
+
+        If the frequency cutoff ``k2`` is set and any term already has
+        frequency :math:`\\geq k2`, the word is discarded entirely (returning
+        an empty :class:`~pprop.pauli.sentence.PauliDict`) since appending one
+        more trig factor would exceed the cutoff.
+
+        Parameters
+        ----------
+        word : tuple[PauliOp, CoeffTerms]
+            ``(pauliop, coeff_terms)`` pair to evolve.
+        k1 : int or None
+            Pauli weight cutoff (unused — rotation gates do not change weight).
+        k2 : int or None
+            Frequency cutoff. Terms at or above this frequency are discarded.
+
+        Returns
+        -------
+        PauliDict
+            Empty if truncated by ``k2``; one entry if the word commutes with
+            the gate; two entries (cos and sin branches) otherwise.
+        """
+        op, coeff_terms = word
+        wire  = self.wires[0]
+        pauli = op[wire]
+        rule  = self.rule.get(pauli, None)
+
+        # If no rule exists this Pauli commutes with the gate — pass through unchanged.
+        if rule is None:
+            return PauliDict({op: coeff_terms})
+
+        # Discard if adding one more trig factor would exceed the frequency cutoff.
+        if k2 is not None and get_frequency(coeff_terms[0]) >= k2:
+            return PauliDict()
+
+        output_label, sign = rule
+
+        new_op = op.copy()
+        new_op.set(wire, output_label)
+
+        # Cosine branch: original Pauli survives, each term gains a cos(θ) factor.
+        cos_terms: CoeffTerms = [
+            (c, list(s), list(cc) + [self.parameter_index])
+            for c, s, cc in coeff_terms
+        ]
+
+        # Sine branch: new Pauli appears, each term gains a sign * sin(θ) factor.
+        sin_terms: CoeffTerms = [
+            (sign * c, list(s) + [self.parameter_index], list(cc))
+            for c, s, cc in coeff_terms
+        ]
+
+        return PauliDict({op: cos_terms, new_op: sin_terms})
+
+
+class RX(RotationGate):
+    r"""
+    The single-qubit parametrised X rotation gate.
+
+    .. math::
+
+        R_x(\phi) = e^{-i\phi\,\sigma_x/2}
+
+    Heisenberg evolution rules:
+
+    .. math::
+
+        Y \mapsto -\sin(\phi)\,Z + \cos(\phi)\,Y, \quad
+        Z \mapsto +\sin(\phi)\,Y + \cos(\phi)\,Z, \quad
+        X \mapsto X
+
+    Parameters
+    ----------
+    wires : list[int]
+        Qubit on which the gate acts.
+    parameter_index : int
+        Index of :math:`\phi` in the global parameter vector.
+    """
+
+    def __init__(self, wires: List[int], parameter_index: int) -> None:
+        rule: EvolutionRule = {
             "Y": ("Z", -1),
             "Z": ("Y", +1),
+            # X commutes with RX — no rule needed.
         }
         super().__init__(wires, qmlRX, parameter_index, rule)
 
 
 class RY(RotationGate):
     r"""
-    The single qubit parametrized Y rotation
+    The single-qubit parametrised Y rotation gate.
 
-    .. math:: R_y(\phi) = e^{-i\phi\sigma_y/2} = \begin{bmatrix} \cos(\phi/2) & -\sin(\phi/2) \\ \sin(\phi/2) & \cos(\phi/2) \end{bmatrix}.
+    .. math::
+
+        R_y(\phi) = e^{-i\phi\,\sigma_y/2}
+
+    Heisenberg evolution rules:
+
+    .. math::
+
+        X \mapsto +\sin(\phi)\,Z + \cos(\phi)\,X, \quad
+        Z \mapsto -\sin(\phi)\,X + \cos(\phi)\,Z, \quad
+        Y \mapsto Y
 
     Parameters
     ----------
-    wires : List[int]
-        The qubits this gate acts on.
+    wires : list[int]
+        Qubit on which the gate acts.
     parameter_index : int
-        Index of the parameter this gate uses.
+        Index of :math:`\phi` in the global parameter vector.
     """
-    def __init__(self, wires, parameter_index):
-        rule = {
+
+    def __init__(self, wires: List[int], parameter_index: int) -> None:
+        rule: EvolutionRule = {
             "X": ("Z", +1),
             "Z": ("X", -1),
+            # Y commutes with RY — no rule needed.
         }
         super().__init__(wires, qmlRY, parameter_index, rule)
 
+
 class RZ(RotationGate):
     r"""
-    The single qubit parametrized Z rotation
+    The single-qubit parametrised Z rotation gate.
 
-    .. math:: R_z(\phi) = e^{-i\phi\sigma_z/2} = \begin{bmatrix} e^{-i\phi/2} & 0 \\ 0 & e^{i\phi/2} \end{bmatrix}.
+    .. math::
+
+        R_z(\phi) = e^{-i\phi\,\sigma_z/2}
+
+    Heisenberg evolution rules:
+
+    .. math::
+
+        X \mapsto -\sin(\phi)\,Y + \cos(\phi)\,X, \quad
+        Y \mapsto +\sin(\phi)\,X + \cos(\phi)\,Y, \quad
+        Z \mapsto Z
 
     Parameters
     ----------
-    wires : List[int]
-        The qubits this gate acts on.
+    wires : list[int]
+        Qubit on which the gate acts.
     parameter_index : int
-        Index of the parameter this gate uses.
+        Index of :math:`\phi` in the global parameter vector.
     """
-    def __init__(self, wires, parameter_index):
-        rule = {
+
+    def __init__(self, wires: List[int], parameter_index: int) -> None:
+        rule: EvolutionRule = {
             "X": ("Y", -1),
             "Y": ("X", +1),
+            # Z commutes with RZ — no rule needed.
         }
         super().__init__(wires, qmlRZ, parameter_index, rule)

@@ -1,84 +1,134 @@
 Usage
 -----
 
-* First import all the necessary libraries
+Pauli propagation works in the Heisenberg picture: rather than simulating the
+statevector, it evolves each observable *backwards* through the circuit gate by
+gate, producing a closed-form trigonometric polynomial in the parameters. The
+workflow has four steps.
+
+Step 0: Imports
+~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-    import pennylane as qml  # To define the circuit
-    from pprop.propagator import Propagator  # For Pauli Propagation
+    import pennylane as qml       # To define the circuit
+    from pprop import Propagator  # For Pauli Propagation
 
-* Define the circuit as a function of the parameters
+Step 1: Define the ansatz
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ansatz must be a plain Python function that accepts a parameter array,
+applies PennyLane gates, and returns a **list** of ``qml.expval(...)`` calls,
+one per observable. Observables can be single Pauli words or arbitrary linear
+combinations thereof.
+
+.. note::
+    ``qml.Barrier()`` is a PennyLane no-op used only for circuit diagrams.
+    It is automatically ignored by the propagator.
 
 .. code-block:: python
 
-    # Function of parameters
-    def ansatz(params : list[float]):
+    def ansatz(params: list[float]):
         qml.RX(params[0], wires=0)
         qml.RX(params[1], wires=1)
-
         qml.RY(params[2], wires=0)
         qml.RY(params[3], wires=1)
-
-        qml.Hadamard(wires = 2)
+        qml.Hadamard(wires=2)
         qml.Barrier()
-
-        qml.CNOT(wires = [0, 1])
-        qml.CNOT(wires = [1, 2])
+        qml.CNOT(wires=[0, 1])
+        qml.CNOT(wires=[1, 2])
         qml.Barrier()
-
         qml.RY(params[4], wires=0)
         qml.RY(params[5], wires=1)
         qml.RY(params[6], wires=2)
-
         return [
-            qml.expval(qml.PauliZ(qubit)) for qubit in range(1)
-        ] + [
-            qml.expval(qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2))
-        ] + [
-            qml.expval(qml.PauliY(2))
-        ] + [
-            qml.expval(-qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2) + 13*qml.PauliZ(2))
+            qml.expval(qml.PauliZ(0)),                                          # ⟨Z₀⟩
+            qml.expval(qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2)),         # ⟨X₀X₁X₂⟩
+            qml.expval(qml.PauliY(2)),                                           # ⟨Y₂⟩
+            qml.expval(-qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2)          # ⟨-X₀X₁X₂ + 13Z₂⟩
+                       + 13 * qml.PauliZ(2)),
         ]
 
-* Define the propagator
+Step 2: Create the Propagator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``Propagator`` wraps the ansatz and accepts two optional truncation cutoffs:
+
+- ``k1``: **Pauli weight cutoff**, discard evolved Pauli words with more than
+  ``k1`` non-identity single-qubit factors. Useful for large systems where
+  high-weight terms contribute negligibly.
+- ``k2``: **Frequency cutoff**, discard terms whose total number of
+  trigonometric factors exceeds ``k2``. Controls expression complexity.
+
+Setting both to ``None`` performs exact propagation with no approximation.
 
 .. code-block:: python
 
     prop = Propagator(
-        ansatz, 
-        k1 = None,  # Cutoff on the Pauli Weight
-        k2 = None,  # Cutoff on the frequencies
+        ansatz,
+        k1=None,  # Pauli weight cutoff  (None = exact)
+        k2=None,  # Frequency cutoff     (None = exact)
     )
 
-* Example of `prop`::
+.. code-block:: text
 
     >>> prop
     Propagator
       Number of qubits : 3
       Trainable parameters : 7
 
-* Propagate the observables::
+Step 3: Propagate
+~~~~~~~~~~~~~~~~~~
 
-    >>> prop.propagate()
-    Propagating 1.0*Z0
-    Propagating 1.0*X0 X1 X2
-    Propagating 1.0*Y2
-    Propagating -1.0*X0 X1 X2 + 13.0*Z2
+``.propagate()`` evolves each observable backwards through the circuit. Each
+line of output shows the initial Pauli word (or linear combination) being
+propagated.
 
-* Get the output expectation values::
+.. code-block:: python
 
-    >>> import qml
-    >>> random_params = qml.numpy.arange(prop.num_params)
-    >>> prop_output = prop(random_params)
+    prop.propagate()
+
+.. code-block:: text
+
+    Propagating (1.0000)*Z0
+    Propagating (1.0000)*X0 X1 X2
+    Propagating (1.0000)*Y2
+    Propagating (-1.0000)*X0 X1 X2 + (13.0000)*Z2
+
+Step 4 — Evaluate
+~~~~~~~~~~~~~~~~~
+
+Once propagated, calling ``prop(params)`` returns all expectation values as a
+NumPy array of shape ``(num_observables,)``.
+
+.. code-block:: python
+
+    random_params = qml.numpy.arange(prop.num_params)
+    prop_output = prop(random_params)
+
+.. code-block:: text
+
     >>> prop_output
     [ 0.32448207 -0.5280619   0.          4.16046337]
 
-* Inspect explicit functions::
+Gradients are available via ``.eval_and_grad()``, which returns
+``(values, jacobian)`` with shapes ``(num_obs,)`` and ``(num_obs, num_params)``
+respectively:
 
-    >>> prop.exprs
-    [-1.0*sin(θ2)*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1) + 1.0*cos(θ0)*cos(θ2)*cos(θ4),
-     -1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) + 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) + 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) + 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6),
-     0,
-     1.0*sin(θ0)*sin(θ1)*sin(θ5)*cos(θ4)*cos(θ6) - 1.0*sin(θ2)*cos(θ0)*cos(θ4)*cos(θ5)*cos(θ6) - 1.0*sin(θ3)*sin(θ4)*cos(θ0)*cos(θ1)*cos(θ2)*cos(θ5)*cos(θ6) - 1.0*sin(θ4)*sin(θ5)*cos(θ1)*cos(θ3)*cos(θ6) - 13.0*sin(θ6)]
-    ...
+.. code-block:: python
+
+    vals, grads = prop.eval_and_grad(random_params)
+
+Inspecting the symbolic expression
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``.expression(idx)`` reconstructs the closed-form SymPy expression for
+observable ``idx``.
+
+.. code-block:: python
+
+    prop.expression(0)  # ⟨Z₀⟩
+
+.. code-block:: text
+
+    -1.0*sin(θ₂)*sin(θ₃)*sin(θ₄)*cos(θ₀)*cos(θ₁) + 1.0*cos(θ₀)*cos(θ₂)*cos(θ₄)

@@ -15,9 +15,6 @@ sqp_gates = [qml.RX, qml.RY, qml.RZ]
 
 # Two qubits no param gates
 tqnp_gates = [qml.CNOT, qml.CY, qml.CZ]
-
-# Two qubits param gates
-tqp_gates = [qml.CRX, qml.CRY, qml.CRZ]
                 
 # %%
 def get_random_ansatz():
@@ -28,7 +25,7 @@ def get_random_ansatz():
         for qubit in range(num_qubits):
             gate = random.choice(sqnp_gates + sqp_gates)
             single_gates.append((gate, qubit))
-        gate = random.choice(tqnp_gates + tqp_gates)
+        gate = random.choice(tqnp_gates)
         q0, q1 = random.sample(range(num_qubits), 2)
         layers.append((single_gates, (gate, q0, q1)))
 
@@ -41,11 +38,7 @@ def get_random_ansatz():
                     param_idx += 1
                 else:
                     gate(wires=qubit)
-            if tq_gate in tqp_gates:
-                tq_gate(params[param_idx], wires=[q0, q1])
-                param_idx += 1
-            else:
-                tq_gate(wires=[q0, q1])
+            tq_gate(wires=[q0, q1])
 
         return [
             qml.expval(qml.PauliZ(0)),
