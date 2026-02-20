@@ -61,7 +61,7 @@ class RotationGate(Gate):
         
         # iff the evolved word would increase the frequency
         # over the cutoff
-        if k2 is not None and get_frequency(coeff, t) >= k2:
+        if k2 is not None and get_frequency(coeff) >= k2:
             return PauliDict()
 
         new_op = op.copy()
