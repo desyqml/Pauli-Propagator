@@ -11,7 +11,7 @@ the expectation value of an observable.
 ...     qml.RY(params[2], wires=0)
 ...     qml.RY(params[3], wires=1)
 ...     return [qml.expval(qml.PauliZ(0))]
->>> prop = Propagator(ansatz, k1 = None, k2 = None) 
+>>> prop = Propagator(ansatz, k1 = None, k2 = None)
 """
 from typing import Callable, List, Optional, Tuple
 
