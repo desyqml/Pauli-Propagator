@@ -95,7 +95,7 @@ class RotationGate(Gate):
         word : tuple[PauliOp, CoeffTerms]
             ``(pauliop, coeff_terms)`` pair to evolve.
         k1 : int or None
-            Pauli weight cutoff (unused — rotation gates do not change weight).
+            Pauli weight cutoff (unused, rotation gates do not change weight).
         k2 : int or None
             Frequency cutoff. Terms at or above this frequency are discarded.
 
@@ -110,7 +110,7 @@ class RotationGate(Gate):
         pauli = op[wire]
         rule  = self.rule.get(pauli, None)
 
-        # If no rule exists this Pauli commutes with the gate — pass through unchanged.
+        # If no rule exists this Pauli commutes with the gate, pass through unchanged.
         if rule is None:
             return PauliDict({op: coeff_terms})
 
@@ -166,7 +166,7 @@ class RX(RotationGate):
         rule: EvolutionRule = {
             "Y": ("Z", -1),
             "Z": ("Y", +1),
-            # X commutes with RX — no rule needed.
+            # X commutes with RX, no rule needed.
         }
         super().__init__(wires, qmlRX, parameter_index, rule)
 
@@ -199,7 +199,7 @@ class RY(RotationGate):
         rule: EvolutionRule = {
             "X": ("Z", +1),
             "Z": ("X", -1),
-            # Y commutes with RY — no rule needed.
+            # Y commutes with RY, no rule needed.
         }
         super().__init__(wires, qmlRY, parameter_index, rule)
 
@@ -232,6 +232,6 @@ class RZ(RotationGate):
         rule: EvolutionRule = {
             "X": ("Y", -1),
             "Y": ("X", +1),
-            # Z commutes with RZ — no rule needed.
+            # Z commutes with RZ, no rule needed.
         }
         super().__init__(wires, qmlRZ, parameter_index, rule)

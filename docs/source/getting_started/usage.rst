@@ -23,7 +23,7 @@ one per observable. Observables can be single Pauli words or arbitrary linear
 combinations thereof.
 
 .. note::
-    ``qml.Barrier()`` is a PennyLane no-op used only for circuit diagrams.
+    ``qml.Barrier()`` is a PennyLane no-op used only for circuit drawing.
     It is automatically ignored by the propagator.
 
 .. code-block:: python
@@ -95,7 +95,7 @@ propagated.
     Propagating (1.0000)*Y2
     Propagating (-1.0000)*X0 X1 X2 + (13.0000)*Z2
 
-Step 4 — Evaluate
+Step 4: Evaluate
 ~~~~~~~~~~~~~~~~~
 
 Once propagated, calling ``prop(params)`` returns all expectation values as a

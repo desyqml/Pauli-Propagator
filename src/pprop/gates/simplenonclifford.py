@@ -72,9 +72,9 @@ class SimpleNonClifford(Gate):
         word : tuple[PauliOp, CoeffTerms]
             ``(pauliop, coeff_terms)`` pair to evolve.
         k1 : int or None
-            Pauli weight cutoff (unused — non-Clifford gates do not change weight).
+            Pauli weight cutoff (unused, non-Clifford gates do not change weight).
         k2 : int or None
-            Frequency cutoff (unused — non-Clifford gates do not change frequency).
+            Frequency cutoff (unused, non-Clifford gates do not change frequency).
 
         Returns
         -------
@@ -86,7 +86,7 @@ class SimpleNonClifford(Gate):
         wire = self.wires[0]
         rule = self.rule.get(op[wire], None)
 
-        # If no rule exists this Pauli commutes with the gate — pass through unchanged.
+        # If no rule exists this Pauli commutes with the gate, pass through unchanged.
         if rule is None:
             return PauliDict({op: coeff_terms})
 
@@ -137,6 +137,6 @@ class T(SimpleNonClifford):
         rule: EvolutionRule = {
             "X": (("X", +1 / sqrt(2)), ("Y", -1 / sqrt(2))),
             "Y": (("Y", +1 / sqrt(2)), ("X", +1 / sqrt(2))),
-            # Z commutes with T — no rule needed, handled by the base class fallthrough.
+            # Z commutes with T, no rule needed, handled by the base class fallthrough.
         }
         super().__init__(wires, qmlT, parameter_index, rule)

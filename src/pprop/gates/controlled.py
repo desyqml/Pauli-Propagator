@@ -80,7 +80,7 @@ class ControlledGate(Gate):
             Pauli weight cutoff. Evolved words with weight exceeding ``k1``
             are discarded. ``None`` disables truncation.
         k2 : int or None
-            Frequency cutoff (unused — controlled gates do not change frequency).
+            Frequency cutoff (unused, controlled gates do not change frequency).
 
         Returns
         -------
@@ -93,7 +93,7 @@ class ControlledGate(Gate):
         # Look up the two-qubit Pauli combination at (control, target).
         rule = self.rule.get(op[wire0] + op[wire1], None)
 
-        # If no rule exists this Pauli commutes with the gate — pass through unchanged.
+        # If no rule exists this Pauli commutes with the gate, pass through unchanged.
         if rule is None:
             return PauliDict({op: coeff_terms})
 

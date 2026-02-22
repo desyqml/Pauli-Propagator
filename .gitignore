@@ -175,6 +175,7 @@ baposter_guide.pdf
 dummy.ipynb
 qag.ipynb
 test.ipynb
+test/
 slurm/
 
 # LaTeX

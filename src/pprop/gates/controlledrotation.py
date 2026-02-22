@@ -35,7 +35,7 @@ tuples with repeated indices:
 
     Rules involving ``cos(θ/2)`` or ``sin(θ/2)`` (e.g. the ``"XI"``, ``"YI"``
     entries) cannot be represented exactly as :data:`~pprop.pauli.sentence.CoeffTerm`
-    tuples in ``θ`` — only in ``θ/2``.  To match PennyLane's output exactly,
+    tuples in ``θ``, only in ``θ/2``.  To match PennyLane's output exactly,
     **the user must pass** ``θ/2`` **as the parameter** for any ``CRX``,
     ``CRY``, or ``CRZ`` gate in the ansatz:
 
@@ -159,7 +159,7 @@ class ControlledRotationGate(Gate):
 
         rule = self.rule.get(op[wire0] + op[wire1], None)
 
-        # Word commutes with the gate — pass through unchanged.
+        # Word commutes with the gate, pass through unchanged.
         if rule is None:
             return PauliDict({op: coeff_terms})
 

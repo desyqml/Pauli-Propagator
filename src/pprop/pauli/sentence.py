@@ -268,6 +268,6 @@ class PauliDict:
         result = cls()
         for c, w in zip(*qml_sum(qml_op).terms()):
             # Constant coefficients have no sin/cos dependence, so both index
-            # lists are empty — this is a valid CoeffTerm with frequency 0.
+            # lists are empty, this is a valid CoeffTerm with frequency 0.
             result.add_term(PauliOp.from_qml(w), (float(c), [], []))
         return result
