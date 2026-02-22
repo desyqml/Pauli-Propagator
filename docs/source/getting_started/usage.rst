@@ -42,11 +42,11 @@ combinations thereof.
         qml.RY(params[5], wires=1)
         qml.RY(params[6], wires=2)
         return [
-            qml.expval(qml.PauliZ(0)),                                          # ⟨Z₀⟩
-            qml.expval(qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2)),         # ⟨X₀X₁X₂⟩
-            qml.expval(qml.PauliY(2)),                                           # ⟨Y₂⟩
-            qml.expval(-qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2)          # ⟨-X₀X₁X₂ + 13Z₂⟩
-                       + 13 * qml.PauliZ(2)),
+            qml.expval(qml.PauliZ(0)),                                  # ⟨Z₀⟩
+            qml.expval(qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2)),  # ⟨X₀X₁X₂⟩
+            qml.expval(qml.PauliY(2)),                                  # ⟨Y₂⟩
+            qml.expval(-qml.PauliX(0) @ qml.PauliX(1) @ qml.PauliX(2)   
+                       + 13 * qml.PauliZ(2)),                           # ⟨-X₀X₁X₂ + 13Z₂⟩
         ]
 
 Step 2: Create the Propagator
