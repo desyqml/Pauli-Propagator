@@ -122,45 +122,6 @@ class DeadQubitPruner(Pruner):
     the current step) touches that qubit, its operator is permanently frozen
     in the non-:math:`ZI` state, the word can never reach zero-bracket and
     can be safely discarded.
-
-    Precomputation
-    --------------
-    To make the per-step check O(1) (in the number of gates), the set of
-    qubits touched by *any* gate from step ``i`` onward, called
-    ``active_qubits_from[i]``, is precomputed once in :meth:`setup` via a
-    single right-to-left pass:
-
-    .. math::
-
-        \\text{active}[n] = \\emptyset, \\qquad
-        \\text{active}[i] = \\text{active}[i+1]
-                            \\cup \\{\\text{wires of gate } i\\}
-
-    At step ``i``, a qubit ``q`` is *inactive* iff
-    ``q ∉ active_qubits_from[i]``.
-
-    .. note::
-
-        The current gate (index ``i``) is **included** in
-        ``active_qubits_from[i]``.  This is intentional: the gate is about
-        to be applied, so it still has a chance to convert ``X``/``Y`` on its
-        wires.  Only qubits that are untouched by *this and all later gates*
-        are considered dead.
-
-    Complexity
-    ----------
-    * **Setup**: :math:`O(G \\cdot W)` where :math:`G` is the number of gates
-      and :math:`W` is the maximum number of wires per gate (typically 1-2).
-    * **Prune per step**: :math:`O(|\\text{paulidict}| \\cdot N)` where
-      :math:`N` is the number of qubits, due to iterating over each word's
-      operators.
-
-    Attributes
-    ----------
-    _active_qubits_from : list[set[int]]
-        ``_active_qubits_from[i]`` is the set of qubit indices touched by at
-        least one gate in ``reversed_gates[i:]``.  Has length
-        ``len(reversed_gates) + 1``; the last entry is always the empty set.
     """
 
     def __init__(self) -> None:
@@ -235,24 +196,6 @@ class XYWeightPruner(Pruner):
     for all single- and two-qubit gates in this gate set). Therefore if
     the current XY-weight exceeds the total reduction budget remaining,
     the word can never reach the :math:`ZI` subspace and is pruned.
-
-    Precomputation
-    --------------
-    A suffix sum of ``max_xy_reduction`` is built once in :meth:`setup`:
-
-    .. math::
-
-        \\text{budget}[n] = 0, \\qquad
-        \\text{budget}[i] = \\text{budget}[i+1]
-                            + \\text{gate}_i\\text{.max\\_xy\\_reduction}
-
-    At step ``i``, any word with ``pw.x.bit_count() > budget[i]`` is dead.
-
-    Attributes
-    ----------
-    _budget : list[int]
-        ``_budget[i]`` is the total XY-reduction budget from step ``i``
-        onward (inclusive). Length ``len(reversed_gates) + 1``.
     """
 
     def __init__(self) -> None:
