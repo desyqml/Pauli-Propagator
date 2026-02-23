@@ -123,5 +123,4 @@ If you use this software in your research or publications, **please cite** the f
 
 ## TODO
 
-- Optimize propagation through preventive prunings
 - Add more tutorials (generation, compression)

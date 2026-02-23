@@ -1,11 +1,11 @@
-"""
-This module handles the core evolution of Pauli words through a list of gates
+"""This module handles the core evolution of Pauli words through a list of gates
 via the Heisenberg picture.
 """
 from typing import List, Optional, Tuple
 
 from ..gates.base import Gate
 from ..pauli.sentence import CoeffTerms, PauliDict
+from .pruning import DeadQubitPruner
 
 
 def to_expectation(paulidict: PauliDict) -> CoeffTerms:
@@ -51,6 +51,7 @@ def heisenberg(
     paulidict: PauliDict,
     k1: Optional[int],
     k2: Optional[int],
+    opt: bool = False,
     debug: bool = False,
 ) -> Tuple[PauliDict, CoeffTerms]:
     r"""
@@ -75,6 +76,8 @@ def heisenberg(
     k2 : int or None
         Frequency cutoff. Evolved terms whose total trigonometric frequency
         exceeds ``k2`` are discarded. ``None`` disables this truncation.
+    opt : bool, optional
+        If ``True``, use optimized pruning strategy. Defaults to ``False``.
     debug : bool, optional
         If ``True``, print the gate, pre-evolution, and post-evolution state at
         each step. Defaults to ``False``.
@@ -87,7 +90,19 @@ def heisenberg(
         Flat list of :data:`CoeffTerm` tuples encoding the symbolic expectation
         value :math:`\langle 0 | U^\dagger O U | 0 \rangle`.
     """
-    for gate in reversed(gates):
+    reversed_gates = gates[::-1]
+
+    if opt:
+        # pruners = [DeadQubitPruner(), XYWeightPruner()]
+        pruners = [DeadQubitPruner()]
+        for pruner in pruners:
+            pruner.setup(reversed_gates)
+        
+    for i, gate in enumerate(reversed_gates):
+        if opt:
+            for pruner in pruners:
+                pruner.prune(paulidict, i)
+
         pauli_add    = PauliDict()  # Evolved replacement terms to add
         pauli_remove = PauliDict()  # Original terms to remove after evolution
 

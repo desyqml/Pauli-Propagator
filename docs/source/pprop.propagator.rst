@@ -8,6 +8,7 @@ Submodules
    :maxdepth: 4
 
    pprop.propagator.evolve
+   pprop.propagator.pruning
    pprop.propagator.utils
 
 Module contents
