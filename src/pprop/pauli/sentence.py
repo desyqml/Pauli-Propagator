@@ -128,7 +128,7 @@ class PauliDict:
                 parts.append(f"({' + '.join(term_strs)})*{k}")
             return " + ".join(parts)
         # Fall back to a compact summary for large dicts.
-        return f"PauliDict({len(self._dict)}"
+        return f"PauliDict({len(self._dict)} terms)"
 
     def items(self) -> ItemsView[PauliOp, CoeffTerms]:
         """Return a view of ``(PauliOp, CoeffTerms)`` pairs."""

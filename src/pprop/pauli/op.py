@@ -169,7 +169,7 @@ class PauliOp:
         """
         active = set()
         # Only need to inspect bits up to the highest set bit across both masks.
-        n = max(self.x.bit_length(), self.z.bit_length())
+        n = max(int(self.x).bit_length(), int(self.z).bit_length())
         for i in range(n):
             if ((self.x >> i) & 1) or ((self.z >> i) & 1):
                 active.add(i)
@@ -307,7 +307,7 @@ class PauliOp:
         """
         result = []
         # Inspect all bit positions up to the highest set bit in either mask.
-        n_qubits = max(self.x.bit_length(), self.z.bit_length())
+        n_qubits = max(int(self.x).bit_length(), int(self.z).bit_length())
         for k in range(n_qubits):
             op = self[k]
             if op != "I":
