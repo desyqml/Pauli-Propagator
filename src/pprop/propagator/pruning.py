@@ -32,19 +32,6 @@ All pruners share the same two-phase lifecycle:
 2. **Prune** (:meth:`Pruner.prune`) — called *once per gate step*, just
    before the gate is applied, with the current :class:`~pprop.pauli.sentence.PauliDict`
    and the index of the current step.  Dead entries are removed in-place.
-
-Usage example
--------------
-.. code-block:: python
-    from pprop.heisenberg import heisenberg
-
-    result = heisenberg(
-        gates,
-        paulidict,
-        k1=3,
-        k2=None,
-        opt=True, # use optimized pruning strategy
-    )
 """
 
 from __future__ import annotations
