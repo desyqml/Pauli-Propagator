@@ -198,7 +198,8 @@ class Propagator:
         # Propagate each observable and store the resulting symbolic expression.
         self.exprs = [None]*len(self.paulidicts)
         for i, paulidict in enumerate(self.paulidicts):
-            print("Propagating", paulidict)
+            if debug:
+                print("Propagating", paulidict)
             propagation = heisenberg(self.gates, paulidict, self.k1, self.k2, opt, debug)
             self.paulidicts[i], self.exprs[i] = propagation
 
