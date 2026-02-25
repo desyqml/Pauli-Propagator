@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import ItemsView, KeysView, ValuesView
 
+from numpy import integer, intp
 from pennylane.ops.op_math import sum as qml_sum
 
 from .op import PauliOp
@@ -118,12 +119,12 @@ class PauliDict:
             parts = []
             for k, terms in self._dict.items():
                 term_strs = []
-                for coeff, sin_idx, cos_idx in terms:
-                    s = f"{coeff:.4f}"
-                    if sin_idx:
-                        s += f"*sin{sin_idx}"
-                    if cos_idx:
-                        s += f"*cos{cos_idx}"
+                for coeff, sin_idxs, cos_idxs in terms:
+                    s = f"{coeff:.2f}"
+                    for sin_idx in sin_idxs:
+                        s += f"*sin(θ_{int(sin_idx)})" if isinstance(sin_idx, (integer, intp)) else f"*sin({sin_idx})"
+                    for cos_idx in cos_idxs:
+                        s += f"*cos(θ_{int(cos_idx)})" if isinstance(cos_idx, (integer, intp)) else f"*cos({cos_idx})"
                     term_strs.append(s)
                 parts.append(f"({' + '.join(term_strs)})*{k}")
             return " + ".join(parts)
