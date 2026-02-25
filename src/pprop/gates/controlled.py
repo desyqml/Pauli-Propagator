@@ -36,7 +36,7 @@ class ControlledGate(Gate):
         ``[control, target]`` qubit indices.
     qml_gate : pennylane.operation.Operator
         Corresponding PennyLane gate class, used for circuit drawing.
-    parameter_index : int or None
+    parameter : int or None
         Index into the parameter vector. Controlled gates are non-parametrised,
         so this is always ``None``.
     rule : EvolutionRule
@@ -53,10 +53,10 @@ class ControlledGate(Gate):
         self,
         wires,
         qml_gate,
-        parameter_index,
+        parameter,
         rule: EvolutionRule,
     ) -> None:
-        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter=parameter)
         self.rule = rule
 
     def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
@@ -137,11 +137,11 @@ class CNOT(ControlledGate):
     ----------
     wires : list[int]
         ``[control, target]`` qubit indices.
-    parameter_index : int, optional
+    parameter : float, int, optional
         Unused. Defaults to ``None``.
     """
 
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, wires: List[int], parameter: Optional[int] = None) -> None:
         rule: EvolutionRule = {
             "IY": (("Z", "Y"), +1),
             "IZ": (("Z", "Z"), +1),
@@ -156,7 +156,7 @@ class CNOT(ControlledGate):
             "ZY": (("I", "Y"), +1),
             "ZZ": (("I", "Z"), +1),
         }
-        super().__init__(wires, qmlCNOT, parameter_index, rule)
+        super().__init__(wires, qmlCNOT, parameter, rule)
 
 
 class CY(ControlledGate):
@@ -176,11 +176,11 @@ class CY(ControlledGate):
     ----------
     wires : list[int]
         ``[control, target]`` qubit indices.
-    parameter_index : int, optional
+    parameter : float, int, optional
         Unused. Defaults to ``None``.
     """
 
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, wires: List[int], parameter: Optional[int] = None) -> None:
         rule: EvolutionRule = {
             "IX": (("Z", "X"), +1),
             "IZ": (("Z", "Z"), +1),
@@ -195,7 +195,7 @@ class CY(ControlledGate):
             "ZX": (("I", "X"), +1),
             "ZZ": (("I", "Z"), +1),
         }
-        super().__init__(wires, qmlCY, parameter_index, rule)
+        super().__init__(wires, qmlCY, parameter, rule)
 
 
 class CZ(ControlledGate):
@@ -215,11 +215,11 @@ class CZ(ControlledGate):
     ----------
     wires : list[int]
         ``[control, target]`` qubit indices.
-    parameter_index : int, optional
+    parameter : float, int, optional
         Unused. Defaults to ``None``.
     """
 
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, wires: List[int], parameter: Optional[int] = None) -> None:
         rule: EvolutionRule = {
             "IX": (("Z", "X"), +1),
             "IY": (("Z", "Y"), +1),
@@ -234,4 +234,4 @@ class CZ(ControlledGate):
             "ZX": (("I", "X"), +1),
             "ZY": (("I", "Y"), +1),
         }
-        super().__init__(wires, qmlCZ, parameter_index, rule)
+        super().__init__(wires, qmlCZ, parameter, rule)

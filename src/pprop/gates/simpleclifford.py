@@ -31,9 +31,8 @@ class SimpleClifford(Gate):
         Qubit on which the gate acts.
     qml_gate : pennylane.operation.Operator
         Corresponding PennyLane gate class, used for circuit drawing.
-    parameter_index : int or None
-        Index into the parameter vector. Clifford gates are non-parametrised,
-        so this is always ``None``.
+    parameter : int or None
+        Clifford gates are non-parametrised, so this is always ``None``.
     rule : EvolutionRule
         Dict mapping a single-qubit Pauli label (``"X"``, ``"Y"``, or ``"Z"``)
         to a ``(output_label, sign)`` tuple where ``sign`` is ``+1`` or ``-1``.
@@ -48,10 +47,10 @@ class SimpleClifford(Gate):
         self,
         wires,
         qml_gate,
-        parameter_index,
+        parameter,
         rule: EvolutionRule,
     ) -> None:
-        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter=parameter)
         self.rule = rule
 
     def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
@@ -117,17 +116,17 @@ class H(SimpleClifford):
     ----------
     wires : list[int]
         Qubit on which the gate acts.
-    parameter_index : int, optional
+    parameter : float, int, optional
         Unused. Defaults to ``None``.
     """
 
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, wires: List[int], parameter: Optional[int] = None) -> None:
         rule: EvolutionRule = {
             "X": ("Z", +1),
             "Y": ("Y", -1),
             "Z": ("X", +1),
         }
-        super().__init__(wires, qmlH, parameter_index, rule)
+        super().__init__(wires, qmlH, parameter, rule)
 
 
 #: Alias for :class:`H`.
@@ -152,14 +151,14 @@ class S(SimpleClifford):
     ----------
     wires : list[int]
         Qubit on which the gate acts.
-    parameter_index : int, optional
+    parameter : float, int, optional
         Unused. Defaults to ``None``.
     """
 
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, wires: List[int], parameter: Optional[int] = None) -> None:
         rule: EvolutionRule = {
             "X": ("Y", -1),
             "Y": ("X", +1),
             # Z commutes with S, no rule needed, handled by the base class fallthrough.
         }
-        super().__init__(wires, qmlS, parameter_index, rule)
+        super().__init__(wires, qmlS, parameter, rule)

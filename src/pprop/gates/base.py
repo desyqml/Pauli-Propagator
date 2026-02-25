@@ -7,6 +7,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
 
+from numpy import integer, intp
 from pennylane.operation import Operation
 
 from ..pauli.op import PauliOp
@@ -32,20 +33,21 @@ class Gate(ABC):
         non-parametrised gates).
     wires : list[int]
         Qubit indices on which this gate acts.
-    parameter_index : int, optional
-        Index of :math:`\\theta` in the global parameter vector. Must be
-        provided for parametrised gates and omitted (or ``None``) for
-        non-parametrised gates.
-
+    parameter : float, int, optional
+        If it is np.intp or np.integer it represents the tndex of
+        :math:`\\theta` in the global parameter vector.
+        If it is float, it is actually an assigned value to the gate.
+        If it is None, the gate is non-parametrised.
     Attributes
     ----------
     qml_gate : pennylane.operation.Operation
         Instantiated PennyLane operator, used for circuit drawing.
     wires : list[int]
         Qubit indices on which this gate acts.
-    parameter_index : int or None
-        Index into the global parameter vector, or ``None`` for
-        non-parametrised gates.
+    parameter : int or None
+        Value of the parametrized gate if float, 
+        index into the global parameter vector if int,
+        or ``None`` for non-parametrised gates.
 
     Raises
     ------
@@ -63,16 +65,16 @@ class Gate(ABC):
         self,
         qml_gate: Operation,
         wires: List[int],
-        parameter_index: Optional[int] = None,
+        parameter: Optional[int] = None,
     ) -> None:
         # Instantiate the PennyLane gate with a placeholder value so we can
         # query its metadata (num_wires, num_params, name).
         self.qml_gate = (
-            qml_gate(1, wires=wires) if parameter_index is not None
+            qml_gate(1, wires=wires) if parameter is not None
             else qml_gate(wires=wires)
         )
         self.wires = wires
-        self.parameter_index = parameter_index
+        self.parameter = parameter
 
         # ------------------------------------------------------------------ #
         # Validation                                                           #
@@ -96,17 +98,17 @@ class Gate(ABC):
         gate_has_param = self.qml_gate.num_params > 0
 
         # 3. Parametrised gate must receive a parameter_index.
-        if gate_has_param and parameter_index is None:
+        if gate_has_param and parameter is None:
             raise ValueError(
                 f"{self.qml_gate.name} requires a parameter, "
-                f"but parameter_index is None."
+                f"but parameter is None."
             )
 
         # 4. Non-parametrised gate must not receive a parameter_index.
-        if not gate_has_param and parameter_index is not None:
+        if not gate_has_param and parameter is not None:
             raise ValueError(
                 f"{self.qml_gate.name} does not accept parameters, "
-                f"but parameter_index={parameter_index} was given."
+                f"but parameter_index={parameter} was given."
             )
 
     @abstractmethod
@@ -151,6 +153,9 @@ class Gate(ABC):
             ``"GateName([wires])"`` for non-parametrised gates, or
             ``"GateName(θ_i, [wires])"`` for parametrised gates.
         """
-        if self.parameter_index is None:
+        if self.parameter is None:
             return f"{self.qml_gate.name}({self.wires})"
-        return f"{self.qml_gate.name}(θ_{self.parameter_index}, {self.wires})"
+        elif isinstance(self.parameter, (integer, intp)):
+            return f"{self.qml_gate.name}({self.parameter}, {self.wires})"
+        else:
+            return f"{self.qml_gate.name}(θ_{self.parameter}, {self.wires})"

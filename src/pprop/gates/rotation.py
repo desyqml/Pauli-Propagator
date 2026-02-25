@@ -5,6 +5,7 @@ parametrised Pauli rotation gates, and the concrete gates :class:`RX`,
 """
 from typing import Dict, List, Tuple
 
+from numpy import cos, integer, intp, sin
 from pennylane import RX as qmlRX
 from pennylane import RY as qmlRY
 from pennylane import RZ as qmlRZ
@@ -46,8 +47,9 @@ class RotationGate(Gate):
         Qubit on which the gate acts.
     qml_gate : pennylane.operation.Operator
         Corresponding PennyLane gate class, used for circuit drawing.
-    parameter_index : int
-        Index of :math:`\\theta` in the global parameter vector.
+    parameter : float, int
+        Index of :math:`\\theta` in the global parameter vector if int.
+        Actual value of the rotation if float.
     rule : EvolutionRule
         Dict mapping a single-qubit Pauli label (``"X"``, ``"Y"``, or ``"Z"``)
         to a ``(output_label, sign)`` tuple for Paulis that anti-commute with
@@ -64,10 +66,10 @@ class RotationGate(Gate):
         self,
         wires,
         qml_gate,
-        parameter_index,
+        parameter,
         rule: EvolutionRule,
     ) -> None:
-        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter=parameter)
         self.rule = rule
 
     def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
@@ -81,7 +83,7 @@ class RotationGate(Gate):
 
             Q \\;\\mapsto\\; \\cos(\\theta)\\, Q \\;+\\; \\sigma\\sin(\\theta)\\, Q'
 
-        Each branch is implemented by appending the gate's ``parameter_index``
+        Each branch is implemented by appending the gate's ``parameter``
         to the ``cos_idx`` (cosine branch, same Pauli) or ``sin_idx`` (sine
         branch, new Pauli) of every existing :data:`CoeffTerm`.
 
@@ -114,26 +116,39 @@ class RotationGate(Gate):
         if rule is None:
             return PauliDict({op: coeff_terms})
 
-        # Discard if adding one more trig factor would exceed the frequency cutoff.
-        if k2 is not None and get_frequency(coeff_terms[0]) >= k2:
-            return PauliDict()
-
         output_label, sign = rule
 
         new_op = op.copy()
         new_op.set(wire, output_label)
 
-        # Cosine branch: original Pauli survives, each term gains a cos(θ) factor.
-        cos_terms: CoeffTerms = [
-            (c, list(s), list(cc) + [self.parameter_index])
-            for c, s, cc in coeff_terms
-        ]
+        if isinstance(self.parameter, (integer, intp)):
+            # Discard if adding one more trig factor would exceed the frequency cutoff.
+            if k2 is not None and get_frequency(coeff_terms[0]) >= k2:
+                return PauliDict()
 
-        # Sine branch: new Pauli appears, each term gains a sign * sin(θ) factor.
-        sin_terms: CoeffTerms = [
-            (sign * c, list(s) + [self.parameter_index], list(cc))
-            for c, s, cc in coeff_terms
-        ]
+            # Cosine branch: original Pauli survives, each term gains a cos(θ) factor.
+            cos_terms: CoeffTerms = [
+                (c, list(s), list(cc) + [self.parameter])
+                for c, s, cc in coeff_terms
+            ]
+
+            # Sine branch: new Pauli appears, each term gains a sign * sin(θ) factor.
+            sin_terms: CoeffTerms = [
+                (sign * c, list(s) + [self.parameter], list(cc))
+                for c, s, cc in coeff_terms
+            ]
+        else:
+            # Cosine branch: original Pauli survives, each term gains a cos(θ) factor.
+            cos_terms: CoeffTerms = [
+                (c * cos(self.parameter), list(s), list(cc))
+                for c, s, cc in coeff_terms
+            ]
+
+            # Sine branch: new Pauli appears, each term gains a sign * sin(θ) factor.
+            sin_terms: CoeffTerms = [
+                (sign * c * sin(self.parameter), list(s), list(cc))
+                for c, s, cc in coeff_terms
+            ]
 
         return PauliDict({op: cos_terms, new_op: sin_terms})
 
@@ -158,17 +173,17 @@ class RX(RotationGate):
     ----------
     wires : list[int]
         Qubit on which the gate acts.
-    parameter_index : int
+    parameter : int
         Index of :math:`\phi` in the global parameter vector.
     """
 
-    def __init__(self, wires: List[int], parameter_index: int) -> None:
+    def __init__(self, wires: List[int], parameter: int) -> None:
         rule: EvolutionRule = {
             "Y": ("Z", -1),
             "Z": ("Y", +1),
             # X commutes with RX, no rule needed.
         }
-        super().__init__(wires, qmlRX, parameter_index, rule)
+        super().__init__(wires, qmlRX, parameter, rule)
 
 
 class RY(RotationGate):
@@ -191,17 +206,17 @@ class RY(RotationGate):
     ----------
     wires : list[int]
         Qubit on which the gate acts.
-    parameter_index : int
+    parameter : int
         Index of :math:`\phi` in the global parameter vector.
     """
 
-    def __init__(self, wires: List[int], parameter_index: int) -> None:
+    def __init__(self, wires: List[int], parameter: int) -> None:
         rule: EvolutionRule = {
             "X": ("Z", +1),
             "Z": ("X", -1),
             # Y commutes with RY, no rule needed.
         }
-        super().__init__(wires, qmlRY, parameter_index, rule)
+        super().__init__(wires, qmlRY, parameter, rule)
 
 
 class RZ(RotationGate):
@@ -224,14 +239,14 @@ class RZ(RotationGate):
     ----------
     wires : list[int]
         Qubit on which the gate acts.
-    parameter_index : int
+    parameter : int
         Index of :math:`\phi` in the global parameter vector.
     """
 
-    def __init__(self, wires: List[int], parameter_index: int) -> None:
+    def __init__(self, wires: List[int], parameter: int) -> None:
         rule: EvolutionRule = {
             "X": ("Y", -1),
             "Y": ("X", +1),
             # Z commutes with RZ, no rule needed.
         }
-        super().__init__(wires, qmlRZ, parameter_index, rule)
+        super().__init__(wires, qmlRZ, parameter, rule)

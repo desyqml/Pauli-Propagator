@@ -135,8 +135,8 @@ class Propagator:
                 # Parametrized gates store the integer index of that parameter.
                 # Non parametrized gates (e.g CNOT) have no parameter and will
                 # just pass None
-                parameter_index = op.parameters[0] if len(op.parameters) == 1 else None
-                gate = getattr(gates, op.name)(op.wires, parameter_index)
+                parameter = op.parameters[0] if len(op.parameters) == 1 else None
+                gate = getattr(gates, op.name)(op.wires, parameter)
                 self.gates.append(gate)
             elif op.name == "Barrier": 
                 # Barriers are PennyLane no-ops used only for circuit drawing;

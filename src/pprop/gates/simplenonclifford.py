@@ -32,9 +32,8 @@ class SimpleNonClifford(Gate):
         Qubits on which the gate acts (single-qubit gate, so one wire).
     qml_gate : pennylane.operation.Operator
         Corresponding PennyLane gate class, used for circuit drawing.
-    parameter_index : int or None
-        Index into the parameter vector. Non-Clifford gates are
-        non-parametrised, so this is always ``None``.
+    parameter : int or None
+        Non-Clifford gates are non-parametrised, so this is always ``None``.
     rule : EvolutionRule
         Dict mapping a single-qubit Pauli label (``"X"``, ``"Y"``, or
         ``"Z"``) to a pair of ``(output_label, phase)`` tuples describing
@@ -51,10 +50,10 @@ class SimpleNonClifford(Gate):
         self,
         wires,
         qml_gate,
-        parameter_index,
+        parameter,
         rule: EvolutionRule,
     ) -> None:
-        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter=parameter)
         self.rule = rule
 
     def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
@@ -129,14 +128,14 @@ class T(SimpleNonClifford):
     ----------
     wires : list[int]
         Qubit on which the gate acts.
-    parameter_index : int, optional
+    parameter : float, int, optional
         Unused for non-parametrised gates. Defaults to ``None``.
     """
 
-    def __init__(self, wires: List[int], parameter_index: Optional[int] = None) -> None:
+    def __init__(self, wires: List[int], parameter: Optional[int] = None) -> None:
         rule: EvolutionRule = {
             "X": (("X", +1 / sqrt(2)), ("Y", -1 / sqrt(2))),
             "Y": (("Y", +1 / sqrt(2)), ("X", +1 / sqrt(2))),
             # Z commutes with T, no rule needed, handled by the base class fallthrough.
         }
-        super().__init__(wires, qmlT, parameter_index, rule)
+        super().__init__(wires, qmlT, parameter, rule)

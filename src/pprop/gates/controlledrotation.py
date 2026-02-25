@@ -9,7 +9,7 @@ Controlled rotation gates produce factors of the form
 :math:`\\cos(\\theta/2)`, :math:`\\sin(\\theta/2)`,
 :math:`\\cos^2(\\theta/2)`, :math:`\\sin^2(\\theta/2)`, and
 :math:`\\sin(\\theta/2)\\cos(\\theta/2)`.  Setting :math:`p` =
-``parameter_index``, these map directly onto :data:`~pprop.pauli.sentence.CoeffTerm`
+``parameter``, these map directly onto :data:`~pprop.pauli.sentence.CoeffTerm`
 tuples with repeated indices:
 
 .. list-table::
@@ -55,6 +55,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 
+from numpy import cos, integer, intp, prod, sin
 from pennylane import CRX as qmlCRX
 from pennylane import CRY as qmlCRY
 from pennylane import CRZ as qmlCRZ
@@ -74,11 +75,11 @@ from .utils import get_frequency
 # terms of the gate's parameter index p; the actual index is substituted
 # at evolve-time.
 # We store the sin/cos index lists as relative placeholders (using -1) and
-# replace -1 with self.parameter_index inside evolve().
+# replace -1 with self.parameter inside evolve().
 _RuleEntry = List[Tuple[str, Tuple[float, List[int], List[int]]]]
 EvolutionRule = Dict[str, _RuleEntry]
 
-# Sentinel value used as a placeholder for parameter_index in the rule dicts.
+# Sentinel value used as a placeholder for parameter in the rule dicts.
 _P = -1
 
 
@@ -91,12 +92,12 @@ class ControlledRotationGate(Gate):
     :math:`|1\\rangle` state.  This produces factors of
     :math:`\\cos(\\theta/2)`, :math:`\\sin(\\theta/2)`, and their squares,
     each encoded as a :data:`~pprop.pauli.sentence.CoeffTerm` with repeated
-    ``parameter_index`` entries (see module docstring for the full table).
+    ``parameter`` entries (see module docstring for the full table).
 
     Each rule entry maps a two-character Pauli string ``"PQ"``
     (control ⊗ target) to a list of ``(output_label, multiplier)`` pairs,
     where ``multiplier`` is a :data:`~pprop.pauli.sentence.CoeffTerm` with
-    ``-1`` as a placeholder for ``parameter_index``.
+    ``-1`` as a placeholder for ``parameter``.
 
     Parameters
     ----------
@@ -104,8 +105,9 @@ class ControlledRotationGate(Gate):
         ``[control, target]`` qubit indices.
     qml_gate : pennylane.operation.Operation
         Corresponding PennyLane gate class.
-    parameter_index : int
-        Index of :math:`\\theta` in the global parameter vector.
+    parameter : int, float
+        Index of :math:`\\theta` in the global parameter vector if int.
+        Actual value of the rotation if float.
     rule : EvolutionRule
         Heisenberg evolution rule dict.
 
@@ -119,10 +121,10 @@ class ControlledRotationGate(Gate):
         self,
         wires,
         qml_gate,
-        parameter_index: int,
+        parameter,
         rule: EvolutionRule,
     ) -> None:
-        super().__init__(wires=wires, qml_gate=qml_gate, parameter_index=parameter_index)
+        super().__init__(wires=wires, qml_gate=qml_gate, parameter=parameter)
         self.rule = rule
 
     def evolve(self, word: Tuple[PauliOp, CoeffTerms], k1, k2) -> PauliDict:
@@ -132,7 +134,7 @@ class ControlledRotationGate(Gate):
         For each matching rule entry the existing :data:`CoeffTerms` are
         scaled by the rule's multiplier: the multiplier's ``sin_idx`` and
         ``cos_idx`` (which use ``-1`` as a placeholder) are substituted with
-        ``self.parameter_index`` and then appended to every existing term's
+        ``self.parameter`` and then appended to every existing term's
         index lists.
 
         The weight cutoff ``k1`` is checked on the output Pauli word.
@@ -155,7 +157,7 @@ class ControlledRotationGate(Gate):
         """
         op, coeff_terms = word
         wire0, wire1 = self.wires
-        p = self.parameter_index
+        p = self.parameter
 
         rule = self.rule.get(op[wire0] + op[wire1], None)
 
@@ -182,14 +184,23 @@ class ControlledRotationGate(Gate):
             # Scale each existing term by the multiplier and extend index lists.
             new_terms: CoeffTerms = []
             for c, s, cc in coeff_terms:
-                # Discard if adding new trig factors would exceed frequency cutoff.
-                if k2 is not None and get_frequency((c, s, cc)) + len(sin_ext) + len(cos_ext) > k2:
-                    continue
-                new_terms.append((
-                    m_coeff * c,
-                    list(s) + sin_ext,
-                    list(cc) + cos_ext,
-                ))
+                if isinstance(self.parameter, (integer, intp)):
+                    # Discard if adding new trig factors would exceed frequency cutoff.
+                    if k2 is not None and get_frequency((c, s, cc)) + len(sin_ext) + len(cos_ext) > k2:
+                        continue
+
+                    new_terms.append((
+                        m_coeff * c,
+                        list(s) + sin_ext,
+                        list(cc) + cos_ext,
+                    ))
+
+                else:
+                    new_terms.append((
+                        m_coeff * c * prod(sin(sin_ext)) * prod(cos(cos_ext)),
+                        list(s),
+                        list(cc),
+                    ))
 
             if new_terms:
                 evolved.add_terms(new_op, new_terms)
@@ -222,12 +233,12 @@ class CRX(ControlledRotationGate):
     ----------
     wires : list[int]
         ``[control, target]`` qubit indices.
-    parameter_index : int
+    parameter : int
         Index of :math:`\\theta` in the global parameter vector.
     """
 
-    def __init__(self, wires: List[int], parameter_index: int) -> None:
-        # Multiplier encoding (using _P as placeholder for parameter_index):
+    def __init__(self, wires: List[int], parameter: int) -> None:
+        # Multiplier encoding (using _P as placeholder for parameter):
         #   cos(t/2)       -> (1.0, [],       [_P])
         #   sin(t/2)       -> (1.0, [_P],     [])
         #  -sin(t/2)       -> (-1.0,[_P],     [])
@@ -269,7 +280,7 @@ class CRX(ControlledRotationGate):
                    ("IZ", (1.0,  [_P, _P], [])),
                    ("IY", (-1.0, [_P],     [_P]))],
         }
-        super().__init__(wires, qmlCRX, parameter_index, rule)
+        super().__init__(wires, qmlCRX, parameter, rule)
 
 
 class CRY(ControlledRotationGate):
@@ -293,11 +304,11 @@ class CRY(ControlledRotationGate):
     ----------
     wires : list[int]
         ``[control, target]`` qubit indices.
-    parameter_index : int
+    parameter : int
         Index of :math:`\\theta` in the global parameter vector.
     """
 
-    def __init__(self, wires: List[int], parameter_index: int) -> None:
+    def __init__(self, wires: List[int], parameter: int) -> None:
         rule: EvolutionRule = {
             "IX": [("IX", (1.0,  [],       [_P, _P])),
                    ("IZ", (1.0,  [_P],     [_P])),
@@ -332,7 +343,7 @@ class CRY(ControlledRotationGate):
                    ("IZ", (1.0,  [_P, _P], [])),
                    ("IX", (1.0,  [_P],     [_P]))],
         }
-        super().__init__(wires, qmlCRY, parameter_index, rule)
+        super().__init__(wires, qmlCRY, parameter, rule)
 
 
 class CRZ(ControlledRotationGate):
@@ -356,11 +367,11 @@ class CRZ(ControlledRotationGate):
     ----------
     wires : list[int]
         ``[control, target]`` qubit indices.
-    parameter_index : int
+    parameter : int
         Index of :math:`\\theta` in the global parameter vector.
     """
 
-    def __init__(self, wires: List[int], parameter_index: int) -> None:
+    def __init__(self, wires: List[int], parameter: int) -> None:
         rule: EvolutionRule = {
             "IX": [("IX", (1.0,  [],       [_P, _P])),
                    ("IY", (-1.0, [_P],     [_P])),
@@ -395,4 +406,4 @@ class CRZ(ControlledRotationGate):
                    ("IY", (1.0,  [_P, _P], [])),
                    ("IX", (-1.0, [_P],     [_P]))],
         }
-        super().__init__(wires, qmlCRZ, parameter_index, rule)
+        super().__init__(wires, qmlCRZ, parameter, rule)
